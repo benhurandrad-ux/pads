@@ -187,6 +187,17 @@
   .acct-actions .btn { margin: 0; }
   .btn.danger { background: transparent; border-color: rgba(229, 72, 77, .5); color: #ff8a8d; }
   .btn.danger.armed { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .get-app {
+    appearance: none; width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer; font: inherit;
+    padding: 12px 14px; margin-bottom: 14px; border-radius: 14px; color: #fff;
+    border: 1px solid rgba(76, 141, 255, .6); background: linear-gradient(135deg, rgba(76, 141, 255, .30), rgba(76, 141, 255, .12));
+    transition: transform 140ms var(--ease-out), border-color 200ms ease;
+  }
+  .get-app:active { transform: scale(.98); }
+  .get-app-icon { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--accent); color: #fff; }
+  .get-app b { display: block; font-size: 15px; font-weight: 650; }
+  .get-app small { display: block; font-size: 12.5px; color: #c4d6f7; margin-top: 2px; }
+  .get-app .chev { margin-left: auto; color: #c4d6f7; }
   .row-btn { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
   .chev { font-size: 20px; line-height: 1; color: var(--muted); }
   .menu { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
@@ -340,6 +351,11 @@
       <div class="lic-bar"><i id="licBar"></i></div>
       <p id="licNote"></p>
     </div>
+    <button class="get-app" id="getApp" type="button">
+      <span class="get-app-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M5 20h14"/></svg></span>
+      <span><b>Baixar o app</b><small>Coloque o King Pad na tela inicial do seu aparelho</small></span>
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
     <div class="rows">
       <div><span class="k">Conta</span><span class="v" id="acctProvider"></span></div>
       <div><span class="k">Membro desde</span><span class="v" id="acctSince"></span></div>
@@ -425,7 +441,7 @@ const CFG = {
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.15';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-20.16';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -1000,7 +1016,7 @@ async function loadLicense() {
 setInterval(() => { if (user && license) applyLicense(); }, 60 * 1000);   // expires while the app is open
 window.addEventListener('online', loadLicense);
 
-const openAccount = () => { renderAccount(); disarmDelete(); acct.showModal(); loadLicense(); };
+const openAccount = () => { renderAccount(); renderSettings(); disarmDelete(); acct.showModal(); loadLicense(); };
 $('#meBtn').addEventListener('click', openAccount);
 $('#daysBadge').addEventListener('click', openAccount);
 $('#paywallAccount').addEventListener('click', openAccount);
@@ -1021,7 +1037,23 @@ let installEvent = null;   // Android/desktop Chrome hands us a native install p
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; renderSettings(); });
 window.addEventListener('appinstalled', () => { installEvent = null; renderSettings(); });
 
+// "Baixar o app" on the account screen: native prompt when the browser offers one, otherwise the step by step.
+$('#getApp').addEventListener('click', async () => {
+  if (installEvent) {
+    installEvent.prompt();
+    try { await installEvent.userChoice; } catch {}
+    installEvent = null;
+    renderSettings();
+    return;
+  }
+  renderSettings();
+  showView(true);
+  $('#installHelp').hidden = false;
+  $('#installToggle').setAttribute('aria-expanded', 'true');
+});
+
 function renderSettings() {
+  $('#getApp').hidden = isStandalone();   // already installed: nothing to offer
   $('#keepAwake').checked = state.keepAwake;
   $('#updateState').textContent = `Versão ${BUILD}`;
   $('#installState').textContent = isStandalone() ? 'Já está instalado neste aparelho' : 'Abre em tela cheia, como um app';

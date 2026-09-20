@@ -462,21 +462,29 @@ function togglePower() {
 
 /* ---------- Library (Supabase Storage) ---------- */
 const bucket = () => sb.storage.from(CFG.bucket);
+const stemFiles = {};   // key -> every object path that belongs to it (used by "Limpar")
+const publicUrl = (folder, name, v) =>
+  `${CFG.supabaseUrl}/storage/v1/object/public/${CFG.bucket}/${encodeURIComponent(folder)}/${encodeURIComponent(name)}?v=${v}`;
+
+// Folders can be plain ("C") or keep their original names ("Continuous Pad - Vol 01 C") when sent
+// through the Supabase dashboard; files are slotted by the number in their name, same rule as the upload.
 async function loadLibrary() {
-  await Promise.all(KEYS.map(async ([key]) => {
-    const urls = Array(CFG.stems).fill(null);
-    const { data } = await bucket().list(key, { limit: 100 });
-    const stamp = Array(CFG.stems).fill(-1);
-    for (const f of data || []) {
-      const n = parseInt(f.name, 10);   // "1" (sent by the app) or "1.mp3" (sent through the Supabase dashboard)
+  const { data: root } = await bucket().list('', { limit: 200 });
+  const folders = (root || []).filter((f) => !f.id && parseKey(f.name));
+  const next = {}, stamp = {}, paths = {};
+  for (const [key] of KEYS) { next[key] = Array(CFG.stems).fill(null); stamp[key] = Array(CFG.stems).fill(-1); paths[key] = []; }
+  await Promise.all(folders.map(async (folder) => {
+    const key = parseKey(folder.name);
+    const { data } = await bucket().list(folder.name, { limit: 100 });
+    const files = (data || []).filter((f) => f.id && (AUDIO_RE.test(f.name) || /^\d+$/.test(f.name)));
+    paths[key].push(...(data || []).filter((f) => f.id).map((f) => `${folder.name}/${f.name}`));
+    assignSlots(files).forEach((f, i) => {
+      if (!f) return;
       const v = Date.parse(f.updated_at || f.created_at || '') || 0;
-      if (n >= 1 && n <= CFG.stems && v > stamp[n - 1]) {   // newest wins when both exist
-        stamp[n - 1] = v;
-        urls[n - 1] = `${bucket().getPublicUrl(`${key}/${f.name}`).data.publicUrl}?v=${v}`;   // v = cache-bust on replace
-      }
-    }
-    library[key] = urls;
+      if (v > stamp[key][i]) { stamp[key][i] = v; next[key][i] = publicUrl(folder.name, f.name, v); }   // newest wins
+    });
   }));
+  for (const [key] of KEYS) { library[key] = next[key]; stemFiles[key] = paths[key]; }
   libraryReady = true;
   render();
   renderRows();
@@ -560,8 +568,7 @@ const uploadError = (e) => e?.message === 'busy' ? 'Já tem um envio em andament
 
 async function clearKey(key) {
   if (state.key === key && state.on) stopSound();   // stop before its files go away
-  const { data } = await bucket().list(key, { limit: 100 });
-  const { error } = await bucket().remove((data || []).map((f) => `${key}/${f.name}`));
+  const { error } = stemFiles[key]?.length ? await bucket().remove(stemFiles[key]) : {};
   if (error) toast(uploadError(error));
   await loadLibrary();
 }

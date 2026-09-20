@@ -215,6 +215,7 @@
   .get-app b { display: block; font-size: 15px; font-weight: 650; }
   .get-app small { display: block; font-size: 12.5px; color: #c4d6f7; margin-top: 2px; }
   .get-app .chev { margin-left: auto; color: #c4d6f7; }
+  .admin-link { text-decoration: none; border-color: rgba(76, 141, 255, .55); color: #cfe0ff; }
   .row-btn { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
   .chev { font-size: 20px; line-height: 1; color: var(--muted); }
   .menu { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
@@ -388,6 +389,7 @@
     </div>
     <div class="acct-actions">
       <a class="btn" id="renewBtn" href="../#oferta" style="display:grid;place-items:center;text-decoration:none">Renovar licença</a>
+      <a class="btn alt row-btn admin-link" id="adminLink" href="../admin/" hidden><span>Menu administrativo</span><span class="chev" aria-hidden="true">›</span></a>
       <button class="btn alt row-btn" id="openSettings" type="button"><span>Configurações</span><span class="chev" aria-hidden="true">›</span></button>
       <button class="btn alt" id="logout" type="button">Sair da conta</button>
       <button class="btn danger" id="deleteBtn" type="button">Excluir conta</button>
@@ -474,7 +476,7 @@ const CFG = {
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.19';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-20.20';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -1105,8 +1107,22 @@ function applyLicense() {
   try { applyMaintenance(); } catch {}
   if (licenseExpired()) showPaywall(); else paywall.hidden = true;
 }
+let isAdminUser = false;
+async function checkAdmin() {
+  if (!user) return;
+  const flag = `kingpad.admin.${user.id}`;
+  try { isAdminUser = localStorage.getItem(flag) === '1'; } catch {}
+  $('#adminLink').hidden = !isAdminUser;
+  const { data, error } = await sb.rpc('is_admin');
+  if (error) return;
+  isAdminUser = data === true;
+  try { localStorage.setItem(flag, isAdminUser ? '1' : '0'); } catch {}
+  $('#adminLink').hidden = !isAdminUser;
+}
+
 async function loadLicense() {
   if (!user) return;
+  checkAdmin();
   try { const c = JSON.parse(localStorage.getItem(LIC_KEY)); if (c?.uid === user.id) license = c.lic; } catch {}   // offline fallback
   applyLicense();
   const { data, error } = await sb.from('licenses').select('*').maybeSingle();
@@ -1240,7 +1256,7 @@ function applySession(session) {
   user = session?.user || null;
   authEl.hidden = !!user;
   if (!user && state.on) stopSound();
-  if (!user) { loginSent = false; libraryFor = null; license = null; paywall.hidden = true; $('#daysBadge').hidden = true; if (acct.open) acct.close(); }
+  if (!user) { isAdminUser = false; $('#adminLink').hidden = true; loginSent = false; libraryFor = null; license = null; paywall.hidden = true; $('#daysBadge').hidden = true; if (acct.open) acct.close(); }
   else { renderAccount(); setTimeout(() => { loadLicense(); loadLibrary(); recordLogin(); loadInbox(); if (!openedSent) { openedSent = true; track('app_open', { standalone: String(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true) }); } }, 0); }   // never call Supabase from inside the auth callback (it can deadlock)
   if (user) { $('#authPass').value = ''; say(''); if (libraryReady) { if (!warm.length) prewarm(); cacheStems(); } }
   render();

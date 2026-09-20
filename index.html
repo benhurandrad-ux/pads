@@ -144,15 +144,29 @@
     transition: transform var(--t-micro) var(--ease-out), opacity var(--t-ui) ease;
   }
   .nav__cta:active { transform: scale(.97); }
+  .nav__login {
+    margin-left: auto; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: var(--r-pill);
+    border: 1px solid rgba(124, 137, 160, .35); font-size: var(--fs-small); font-weight: 600;
+    transition: transform var(--t-micro) var(--ease-out), border-color var(--t-ui) ease, opacity var(--t-ui) ease;
+  }
+  .nav__login:active { transform: scale(.97); }
+  .nav__login + .nav__cta { margin-left: 8px; }
+  .nav.is-light .nav__login { border-color: rgba(16, 21, 31, .25); }
+  .has-account .nav__login { display: none; }
+  .has-account .nav__login + .nav__cta { margin-left: auto; }
+  .login-hint { margin: 14px 0 0; font-size: var(--fs-small); color: var(--muted); }
+  .login-hint a { color: var(--text); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+  .has-account .login-hint { display: none; }
   .nav.is-light { background: rgba(243, 238, 227, .72); border-bottom-color: rgba(16, 21, 31, .1); color: var(--ink); }
   .nav.is-light .brand img { filter: brightness(0); }
   @media (min-width: 900px) {
     .nav__links { display: flex; }
-    .nav__cta { margin-left: 8px; }
+    .nav__login { margin-left: 8px; }
   }
   @media (hover: hover) and (pointer: fine) {
     .nav__links a:hover { opacity: 1; }
     .nav__cta:hover { opacity: .9; }
+    .nav__login:hover { border-color: currentColor; }
   }
 
   /* 2. Hero */
@@ -438,8 +452,8 @@
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; }
-    .btn, .link, .nav__cta, .power, .key, .chip, .plus { transition-duration: 1ms; }
-    .btn:active, .link:active, .nav__cta:active, .power:active, .key:active, .chip:active { transform: none; }
+    .btn, .link, .nav__cta, .nav__login, .power, .key, .chip, .plus { transition-duration: 1ms; }
+    .btn:active, .link:active, .nav__cta:active, .nav__login:active, .power:active, .key:active, .chip:active { transform: none; }
     .faq__panel { transition: none; }
     .faq__inner { transition: none; }
   }
@@ -459,7 +473,8 @@
       <a href="#oferta">preço</a>
       <a href="#perguntas">perguntas</a>
     </nav>
-    <a class="nav__cta" id="navCta" href="app/">Testar grátis</a>
+    <a class="nav__login" id="navLogin" href="app/">Entrar</a>
+    <a class="nav__cta" id="navCta" href="app/#cadastro">Testar grátis</a>
   </div>
 </header>
 
@@ -474,7 +489,7 @@
         <h1 class="reveal">o pad que soa gravado, porque foi</h1>
         <p class="hero__sub reveal">Pads contínuos nos 7 tons, com 4 camadas gravadas de verdade e um fader para cada uma. Abre no navegador do celular, do tablet ou do computador. Sem instalar nada, sem cabo, sem interface. Para o show, o culto e a gig.</p>
         <div class="hero__actions reveal">
-          <a class="btn" href="app/">Testar grátis por 7 dias</a>
+          <a class="btn" href="app/#cadastro">Testar grátis por 7 dias</a>
           <a class="link" href="#demo">
             <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M2 9h1.5M6 5v8M9.5 2.5v13M13 6v6M16 8.2v1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             ouvir o pad
@@ -616,7 +631,8 @@
           <li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>uso no celular, tablet e computador</li>
           <li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>funcionamento offline depois do primeiro acesso</li>
         </ul>
-        <a class="btn btn--block" href="app/">Testar grátis por 7 dias</a>
+        <a class="btn btn--block" href="app/#cadastro">Testar grátis por 7 dias</a>
+        <p class="login-hint" style="text-align:center">Já tem conta? <a href="app/">Entrar</a></p>
         <div class="offer__foot">
           <p class="small">Sem fidelidade, cancele quando quiser.</p>
           <p class="small">Login com Google ou e-mail. Leva menos de um minuto.</p>
@@ -664,7 +680,8 @@
     <div class="container final__in">
       <h2 class="h2 reveal">leve um pad de verdade para o próximo show, culto ou gig</h2>
       <p class="lead reveal">Sete dias para ouvir no som do seu palco. Se não fizer diferença, é só não continuar.</p>
-      <a class="btn reveal" href="app/">Testar grátis por 7 dias</a>
+      <a class="btn reveal" href="app/#cadastro">Testar grátis por 7 dias</a>
+      <p class="login-hint reveal">Já tem conta? <a href="app/">Entrar</a></p>
       <p class="small reveal">depois R$ 14,90 por mês · sem fidelidade</p>
     </div>
   </section>
@@ -759,7 +776,7 @@
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && k.startsWith('sb-enytnepolxsyabsxdxyn-auth-token')) { $('#navCta').textContent = 'Abrir o app'; break; }
+      if (k && k.startsWith('sb-enytnepolxsyabsxdxyn-auth-token')) { $('#navCta').textContent = 'Abrir o app'; $('#navCta').setAttribute('href', 'app/'); document.documentElement.classList.add('has-account'); break; }
     }
   } catch {}
 

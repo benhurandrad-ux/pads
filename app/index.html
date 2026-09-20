@@ -354,7 +354,7 @@ const CFG = {
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.13';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-20.14';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -987,6 +987,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 setInterval(checkVersion, 5 * 60 * 1000);
 
 render();
+if (location.hash === '#cadastro') setAuthMode('signup');   // sales page CTA lands on the sign-up tab
 sb.auth.getSession().then(({ data }) => applySession(data.session));
 loadLibrary();
 </script>

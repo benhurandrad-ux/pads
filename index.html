@@ -272,7 +272,8 @@ const CFG = {
   admins: ['benhurandrad@gmail.com'],
   google: false,    // flip to true once the Google provider is enabled in Supabase Auth
   stems: 4,
-  fade: 2.5,        // seconds, crossfade between keys and on stop
+  fade: 0.9,        // seconds, fade-in of the new key
+  fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
@@ -393,12 +394,23 @@ class LoopPair {
       v.lead?.addEventListener('ended', () => this.check(v, true));
     }
   }
-  start() { this.active.start(CFG.fade); this.spare.unlock(); }
+  start() {
+    this.active.start(CFG.fade);
+    this.spare.unlock();
+    // Watchdog: if the stream stalls (network drop on stage) restart this stem from the spare voice.
+    let last = -1, strikes = 0;
+    this.watch = setInterval(() => {
+      const t = this.active.lead?.currentTime ?? 0;
+      strikes = t === last ? strikes + 1 : 0;
+      last = t;
+      if (strikes >= 3) { strikes = 0; this.check(this.active, true); }
+    }, 4000);
+  }
   check(voice, force) {
     if (this.dead || this.swapping || voice !== this.active) return;
     const el = voice.lead, d = el.duration;
-    if (!isFinite(d) || d <= 0) return;
-    const xf = Math.min(CFG.loopFade, d * .25);
+    if (!force && (!isFinite(d) || d <= 0)) return;
+    const xf = isFinite(d) && d > 0 ? Math.min(CFG.loopFade, d * .25) : 1;
     if (!force && el.currentTime < d - xf - .25) return;
     this.swapping = true;
     this.spare.start(xf);
@@ -408,7 +420,8 @@ class LoopPair {
   }
   kill() {
     this.dead = true;
-    this.active.stop(CFG.fade, true);
+    clearInterval(this.watch);
+    this.active.stop(CFG.fadeOut, true);
     this.spare.stop(0, true);
   }
 }
@@ -488,6 +501,22 @@ async function loadLibrary() {
   libraryReady = true;
   render();
   renderRows();
+  prewarm();
+}
+
+// Buffers the start of every stem ahead of time (the browser shares the media cache per URL),
+// so a key change starts playing right away instead of waiting for the network.
+let warm = [];
+function prewarm() {
+  if (!user || navigator.connection?.saveData) return;
+  warm.forEach((el) => { el.removeAttribute('src'); el.load(); });
+  warm = Object.values(library).flat().filter(Boolean).map((url) => {
+    const el = new Audio();
+    el.crossOrigin = 'anonymous';
+    el.preload = 'auto';
+    el.src = url;
+    return el;
+  });
 }
 
 /* ---------- Upload ---------- */
@@ -777,7 +806,7 @@ function applySession(session) {
   authEl.hidden = !!user;
   $('#openFiles').hidden = !isAdmin();
   if (!user && state.on) stopSound();
-  if (user) { $('#authPass').value = ''; say(''); }
+  if (user) { $('#authPass').value = ''; say(''); if (libraryReady && !warm.length) prewarm(); }
   render();
 }
 sb.auth.onAuthStateChange((_event, session) => applySession(session));

@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a0e16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pads">
+<title>Pads</title>
+<style>
+  :root {
+    --bg: #0a0e16;
+    --panel: #131a27;
+    --line: #232e42;
+    --text: #e8edf6;
+    --muted: #7c89a0;
+    --accent: #4c8dff;
+    --accent-soft: rgba(76, 141, 255, .22);
+    --danger: #e5484d;
+    --ease-out: cubic-bezier(.23, 1, .32, 1);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  button { font-family: inherit; }
+
+  .app {
+    height: 100dvh;
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 10px;
+    padding: calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 14px)
+             calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 14px);
+  }
+
+  header { display: flex; align-items: center; gap: 12px; padding: 0 2px; }
+  header h1 { font-size: 16px; font-weight: 650; letter-spacing: -.01em; margin: 0; }
+  #status { font-size: 13px; color: var(--muted); margin-right: auto; }
+  #status b { color: var(--text); font-weight: 600; }
+  .pill {
+    appearance: none; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: transform 140ms var(--ease-out), background-color 200ms ease;
+  }
+  .pill:active { transform: scale(.96); }
+  .pill.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .pill.ghost { background: transparent; color: var(--muted); }
+
+  /* Mixer: 6 vertical faders + master */
+  .faders { display: grid; grid-template-columns: repeat(var(--stems), 1fr) 14px 1.1fr; gap: 9px; min-height: 0; }
+  .faders .sep { width: 1px; background: var(--line); justify-self: center; margin: 8px 0; }
+  .fader {
+    position: relative; overflow: hidden; border-radius: 18px; min-height: 0;
+    background: var(--panel); border: 1px solid var(--line);
+    touch-action: none; cursor: ns-resize; outline: none;
+    transition: opacity 200ms ease, border-color 200ms ease;
+  }
+  .fader:focus-visible { border-color: var(--accent); }
+  .fader.dragging { border-color: #3a4a68; }
+  .fill {
+    position: absolute; inset: 0; transform-origin: center bottom; transform: scaleY(.8);
+    background: linear-gradient(0deg, #26385c, #3d6fd0);
+    transition: opacity 200ms ease;
+    will-change: transform;
+  }
+  .fader.muted .fill { opacity: .22; }
+  .fader.missing { opacity: .4; }
+  .fader.master .fill { background: linear-gradient(0deg, #56627a, #dfe6f3); }
+
+  .chip {
+    position: absolute; left: 50%; bottom: 8px; translate: -50% 0; z-index: 2;
+    width: 40px; height: 40px; border-radius: 12px; border: 0; cursor: pointer;
+    background: rgba(8, 12, 20, .6); color: var(--text); font-size: 16px; font-weight: 700;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    transition: transform 140ms var(--ease-out), background-color 200ms ease;
+  }
+  .chip:active { transform: scale(.92); }
+  .fader.muted .chip { background: var(--danger); color: #fff; }
+  .fader.master .chip { background: rgba(8, 12, 20, .72); cursor: default; }
+  .pct {
+    position: absolute; left: 0; right: 0; top: 10px; z-index: 2; pointer-events: none; text-align: center;
+    font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, .88);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, .55);
+  }
+
+  /* Keys row */
+  .keys { display: grid; grid-template-columns: repeat(7, 1fr); gap: 9px; height: 62px; }
+  .key {
+    appearance: none; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    border-radius: 16px; cursor: pointer; min-width: 0;
+    display: flex; align-items: baseline; justify-content: center; gap: 6px; padding-top: 18px;
+    transition: transform 140ms var(--ease-out), background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease, opacity 200ms ease;
+  }
+  .key strong { font-size: 24px; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+  .key span { font-size: 11px; color: var(--muted); transition: color 200ms ease; }
+  .key:active { transform: scale(.95); }
+  .key[aria-pressed="true"] {
+    background: var(--accent); border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft), 0 10px 28px -8px rgba(76, 141, 255, .7);
+  }
+  .key[aria-pressed="true"] span { color: rgba(255, 255, 255, .8); }
+  .key.empty { opacity: .35; }
+
+  /* Files dialog */
+  dialog {
+    border: 1px solid var(--line); background: #0f1521; color: var(--text); border-radius: 22px; padding: 0;
+    width: min(92vw, 520px); max-height: min(88dvh, 560px); overflow: hidden;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .8);
+    opacity: 1; transform: none;
+    transition: opacity 200ms ease, transform 260ms var(--ease-out);
+  }
+  @starting-style { dialog[open] { opacity: 0; transform: translateY(12px) scale(.98); } }
+  dialog::backdrop { background: rgba(4, 7, 12, .66); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  .sheet { display: grid; grid-template-rows: auto 1fr; max-height: inherit; }
+  .sheet-head { display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px; border-bottom: 1px solid var(--line); }
+  .sheet-head h2 { font-size: 16px; margin: 0 auto 0 0; font-weight: 650; }
+  .sheet-body { overflow-y: auto; padding: 12px 16px 16px; -webkit-overflow-scrolling: touch; }
+  .hint { font-size: 12.5px; line-height: 1.45; color: var(--muted); margin: 0 0 12px; }
+  .hint code { color: var(--text); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+  .row .k { width: 38px; height: 38px; border-radius: 11px; background: var(--panel); display: grid; place-items: center; font-weight: 700; font-size: 17px; }
+  .row .info { margin-right: auto; font-size: 13px; line-height: 1.3; }
+  .row .info small { display: block; color: var(--muted); font-size: 11.5px; }
+  .row .pill { height: 32px; padding: 0 12px; font-size: 12.5px; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 86px); z-index: 10;
+    translate: -50% 0; max-width: min(88vw, 440px); padding: 11px 16px; border-radius: 14px;
+    background: #232e42; color: var(--text); font-size: 13.5px; line-height: 1.35; text-align: center;
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, .6);
+    opacity: 0; transform: translateY(8px); pointer-events: none;
+    transition: opacity 200ms ease, transform 240ms var(--ease-out);
+  }
+  #toast.show { opacity: 1; transform: none; }
+
+  @media (max-height: 420px) {
+    .app { gap: 8px; }
+    .keys { height: 54px; }
+    .key { padding-top: 14px; }
+  }
+  @media (max-width: 520px) {
+    .faders, .keys { gap: 6px; }
+    .key { flex-direction: column; align-items: center; gap: 1px; padding-top: 10px; }
+    .chip { width: 34px; height: 34px; border-radius: 10px; font-size: 14px; }
+    .pct { font-size: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .key, .chip, .pill, #toast, dialog { transition-property: opacity, background-color, border-color; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Pads</h1>
+    <div id="status">Carregando…</div>
+    <button class="pill" id="openFiles">Arquivos</button>
+  </header>
+  <div class="faders" id="faders"></div>
+  <div class="keys" id="keys"></div>
+</div>
+
+<dialog id="files" aria-labelledby="filesTitle">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2 id="filesTitle">Vias dos tons</h2>
+      <button class="pill primary" id="pickFolder">Enviar pasta</button>
+      <button class="pill ghost" id="closeFiles">Fechar</button>
+    </div>
+    <div class="sheet-body">
+      <p class="hint" id="filesHint"></p>
+      <div id="rows"></div>
+    </div>
+  </div>
+</dialog>
+<input type="file" id="folderInput" webkitdirectory multiple hidden>
+<input type="file" id="filesInput" accept="audio/*,.mp3,.wav,.m4a" multiple hidden>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- Config ---------- */
+// Stems come from two places, in this order:
+//   1. uploaded through "Arquivos" (saved in this device's IndexedDB)
+//   2. <base>/<KEY>/<1..6>.<ext> next to the app (or a storage bucket URL in `base`)
+const CFG = {
+  base: 'audio',
+  ext: ['mp3', 'wav'],
+  stems: 6,
+  fade: 2.5,        // seconds, crossfade between keys and on stop
+  loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
+};
+const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
+const STORE = 'pads.v2';
+const AUDIO_RE = /\.(mp3|wav|m4a|aac|ogg)$/i;
+
+/* ---------- State ---------- */
+const saved = (() => { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch { return {}; } })();
+const fit = (arr, fillWith) => Array.from({ length: CFG.stems }, (_, i) => arr?.[i] ?? fillWith);
+const state = {
+  levels: fit(saved.levels, .8),
+  mutes: fit(saved.mutes, false),
+  master: saved.master ?? .8,
+  key: null,
+};
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ levels: state.levels, mutes: state.mutes, master: state.master })); } catch {} };
+
+const library = {};     // key -> [url | null] per stem (what actually plays)
+const serverLib = {};   // key -> [url | null] found in the app folder
+const localLib = {};    // key -> [objectURL | null] uploaded on this device
+let libraryReady = false;
+const $ = (s) => document.querySelector(s);
+const statusEl = $('#status');
+document.documentElement.style.setProperty('--stems', CFG.stems);
+
+/* ---------- Audio engine ---------- */
+let ctx, masterGain, stemGains = [], pair = null, wakeLock = null;
+
+function ensureAudio() {
+  if (ctx) { if (ctx.state !== 'running') ctx.resume(); return; }
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}  // iOS: play even with the mute switch on
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = ctx.createGain();
+  masterGain.connect(ctx.destination);
+  for (let i = 0; i < CFG.stems; i++) {
+    const g = ctx.createGain();
+    g.connect(masterGain);
+    stemGains.push(g);
+  }
+  applyGains(true);
+}
+
+const curve = (v) => v * v;
+function applyGains(instant) {
+  if (!ctx) return;
+  const set = (param, v) => instant ? param.setValueAtTime(v, ctx.currentTime) : param.setTargetAtTime(v, ctx.currentTime, .02);
+  set(masterGain.gain, curve(state.master));
+  stemGains.forEach((g, i) => set(g.gain, state.mutes[i] ? 0 : curve(state.levels[i])));
+}
+
+function ramp(param, to, seconds) {
+  const t = ctx.currentTime;
+  param.cancelScheduledValues(t);
+  param.setValueAtTime(param.value, t);
+  param.linearRampToValueAtTime(to, t + seconds);
+}
+
+// One set of synced <audio> elements (streamed, so long files don't blow up phone memory).
+class Voice {
+  constructor(urls) {
+    this.gen = 0;
+    this.parts = urls.map((url, i) => {
+      if (!url) return null;
+      const el = new Audio();
+      if (!url.startsWith('blob:')) el.crossOrigin = 'anonymous';
+      el.preload = 'auto';
+      el.src = url;
+      const src = ctx.createMediaElementSource(el);
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      src.connect(gain).connect(stemGains[i]);
+      return { el, src, gain };
+    }).filter(Boolean);
+    this.lead = this.parts[0]?.el;
+  }
+  start(fade) {
+    this.gen++;
+    for (const p of this.parts) {
+      p.el.muted = false;
+      try { p.el.currentTime = 0; } catch {}
+      p.el.play().catch(() => {});
+      ramp(p.gain.gain, 1, fade);
+    }
+  }
+  // Runs inside the tap gesture so iOS allows this voice to start later from a timer.
+  unlock() {
+    for (const p of this.parts) {
+      p.el.muted = true;
+      const gen = this.gen;
+      p.el.play().then(() => { if (this.gen === gen) { p.el.pause(); p.el.currentTime = 0; p.el.muted = false; } }).catch(() => {});
+    }
+  }
+  stop(fade, dispose) {
+    const gen = ++this.gen;
+    for (const p of this.parts) ramp(p.gain.gain, 0, fade);
+    setTimeout(() => {
+      if (this.gen !== gen) return;
+      for (const p of this.parts) {
+        p.el.pause();
+        if (dispose) { p.src.disconnect(); p.gain.disconnect(); p.el.removeAttribute('src'); p.el.load(); }
+        else { try { p.el.currentTime = 0; } catch {} }
+      }
+    }, fade * 1000 + 150);
+  }
+}
+
+// Two voices ping-pong with a crossfade at the end of the track: seamless loop even with MP3 padding.
+class LoopPair {
+  constructor(urls) {
+    this.active = new Voice(urls);
+    this.spare = new Voice(urls);
+    this.dead = false;
+    this.swapping = false;
+    for (const v of [this.active, this.spare]) {
+      v.lead?.addEventListener('timeupdate', () => this.check(v));
+      v.lead?.addEventListener('ended', () => this.check(v, true));
+    }
+  }
+  start() { this.active.start(CFG.fade); this.spare.unlock(); }
+  check(voice, force) {
+    if (this.dead || this.swapping || voice !== this.active) return;
+    const el = voice.lead, d = el.duration;
+    if (!isFinite(d) || d <= 0) return;
+    const xf = Math.min(CFG.loopFade, d * .25);
+    if (!force && el.currentTime < d - xf - .25) return;
+    this.swapping = true;
+    this.spare.start(xf);
+    this.active.stop(xf, false);
+    [this.active, this.spare] = [this.spare, this.active];
+    setTimeout(() => { this.swapping = false; }, xf * 1000 + 400);
+  }
+  kill() {
+    this.dead = true;
+    this.active.stop(CFG.fade, true);
+    this.spare.stop(0, true);
+  }
+}
+
+async function setWake(on) {
+  try {
+    if (on && !wakeLock && navigator.wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.key) { setWake(true); ctx?.resume(); }
+});
+
+function selectKey(key) {
+  const urls = library[key];
+  if (!urls || !urls.some(Boolean)) {
+    toast(`Sem vias para ${key}. Envie a pasta em "Arquivos".`);
+    return;
+  }
+  ensureAudio();
+  if (pair) { pair.kill(); pair = null; }
+  if (state.key === key) {           // tap on the playing key = stop
+    state.key = null;
+    setWake(false);
+  } else {
+    state.key = key;
+    pair = new LoopPair(urls);
+    pair.start();
+    setWake(true);
+  }
+  render();
+}
+
+/* ---------- Storage (uploaded stems, IndexedDB) ---------- */
+let dbPromise;
+const db = () => dbPromise ||= new Promise((res, rej) => {
+  const r = indexedDB.open('pads', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('stems');   // "<KEY>/<n>" -> Blob
+  r.onsuccess = () => res(r.result);
+  r.onerror = () => rej(r.error);
+});
+async function tx(mode, fn) {
+  const d = await db();
+  return new Promise((res, rej) => {
+    const t = d.transaction('stems', mode);
+    const out = fn(t.objectStore('stems'));
+    t.oncomplete = () => res(out?.result ?? out);
+    t.onerror = t.onabort = () => rej(t.error);
+  });
+}
+
+async function loadLocal() {
+  for (const urls of Object.values(localLib)) urls.forEach((u) => u && URL.revokeObjectURL(u));
+  for (const [key] of KEYS) localLib[key] = Array(CFG.stems).fill(null);
+  try {
+    const d = await db();
+    await new Promise((res, rej) => {
+      const cur = d.transaction('stems').objectStore('stems').openCursor();
+      cur.onsuccess = () => {
+        const c = cur.result;
+        if (!c) return res();
+        const [key, n] = String(c.key).split('/');
+        if (localLib[key] && +n >= 1 && +n <= CFG.stems) localLib[key][+n - 1] = URL.createObjectURL(c.value);
+        c.continue();
+      };
+      cur.onerror = () => rej(cur.error);
+    });
+  } catch {}
+}
+
+async function probe(key, n) {
+  for (const ext of CFG.ext) {
+    const url = `${CFG.base}/${key}/${n}.${ext}`;
+    try { const r = await fetch(url, { method: 'HEAD', cache: 'no-store' }); if (r.ok) return url; } catch {}
+  }
+  return null;
+}
+async function loadServer() {
+  await Promise.all(KEYS.map(async ([key]) => {
+    serverLib[key] = await Promise.all(Array.from({ length: CFG.stems }, (_, i) => probe(key, i + 1)));
+  }));
+}
+function mergeLibrary() {
+  for (const [key] of KEYS) {
+    library[key] = Array.from({ length: CFG.stems }, (_, i) => localLib[key]?.[i] || serverLib[key]?.[i] || null);
+  }
+  libraryReady = true;
+  render();
+  renderRows();
+}
+
+/* ---------- Upload ---------- */
+const PT = { do: 'C', re: 'D', mi: 'E', fa: 'F', sol: 'G', la: 'A', si: 'B' };
+function parseKey(folder) {
+  const s = folder.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+  const word = s.split(/[\s_\-.()]+/)[0];
+  if (PT[word]) return PT[word];
+  return /^[a-g]$/.test(word) ? word.toUpperCase() : null;
+}
+
+// Slot by the number in the file name (1.mp3, "via 2.mp3"); anything else fills the free slots in name order.
+function assignSlots(files) {
+  const slots = Array(CFG.stems).fill(null), rest = [];
+  const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name, 'pt', { numeric: true }));
+  for (const f of sorted) {
+    const n = +(f.name.match(/\d+/)?.[0] ?? 0);
+    if (n >= 1 && n <= CFG.stems && !slots[n - 1]) slots[n - 1] = f; else rest.push(f);
+  }
+  for (const f of rest) { const i = slots.indexOf(null); if (i < 0) break; slots[i] = f; }
+  return slots;
+}
+
+async function storeFiles(byKey) {
+  let count = 0;
+  await tx('readwrite', (store) => {
+    for (const [key, files] of Object.entries(byKey)) {
+      assignSlots(files).forEach((f, i) => { if (f) { store.put(f, `${key}/${i + 1}`); count++; } });
+    }
+  });
+  try { navigator.storage?.persist?.(); } catch {}
+  await loadLocal();
+  mergeLibrary();
+  return count;
+}
+
+async function handleFolder(fileList) {
+  const byKey = {};
+  for (const f of fileList) {
+    if (!AUDIO_RE.test(f.name)) continue;
+    const parts = (f.webkitRelativePath || '').split('/');
+    const key = parseKey(parts[parts.length - 2] || '');
+    if (key) (byKey[key] ||= []).push(f);
+  }
+  const keys = Object.keys(byKey);
+  if (!keys.length) return toast('Não achei as pastas dos tons. Use pastas C, D, E, F, G, A, B com os arquivos 1 a 6 dentro.');
+  try {
+    const n = await storeFiles(byKey);
+    toast(`${n} vias salvas em ${keys.length} ${keys.length > 1 ? 'tons' : 'tom'}: ${keys.sort().join(', ')}`);
+  } catch { toast('Não consegui salvar. Verifique o espaço livre do aparelho.'); }
+}
+
+async function handleKeyFiles(key, fileList) {
+  const files = [...fileList].filter((f) => AUDIO_RE.test(f.name) || f.type.startsWith('audio/'));
+  if (!files.length) return;
+  try {
+    const n = await storeFiles({ [key]: files });
+    toast(`${key}: ${n} ${n > 1 ? 'vias salvas' : 'via salva'}`);
+  } catch { toast('Não consegui salvar. Verifique o espaço livre do aparelho.'); }
+}
+
+async function clearKey(key) {
+  await tx('readwrite', (store) => { for (let i = 1; i <= CFG.stems; i++) store.delete(`${key}/${i}`); });
+  if (state.key === key) selectKey(key);   // stop before its files go away
+  await loadLocal();
+  mergeLibrary();
+}
+
+/* ---------- UI ---------- */
+const keysEl = $('#keys'), fadersEl = $('#faders');
+const keyBtns = {}, faderEls = [];
+
+KEYS.forEach(([key, name]) => {
+  const b = document.createElement('button');
+  b.className = 'key empty';
+  b.setAttribute('aria-pressed', 'false');
+  b.setAttribute('aria-label', `Tom ${name}`);
+  b.innerHTML = `<strong>${key}</strong><span>${name}</span>`;
+  b.addEventListener('click', () => selectKey(key));
+  keysEl.append(b);
+  keyBtns[key] = b;
+});
+
+function makeFader({ label, get, set, master, onChip }) {
+  const el = document.createElement('div');
+  el.className = 'fader' + (master ? ' master' : '');
+  el.tabIndex = 0;
+  el.setAttribute('role', 'slider');
+  el.setAttribute('aria-orientation', 'vertical');
+  el.setAttribute('aria-label', master ? 'Master' : `Via ${label}`);
+  el.setAttribute('aria-valuemin', 0);
+  el.setAttribute('aria-valuemax', 100);
+  el.innerHTML = `<div class="fill"></div><span class="pct"></span><button class="chip" tabindex="-1">${label}</button>`;
+  const fill = el.querySelector('.fill'), pct = el.querySelector('.pct'), chip = el.querySelector('.chip');
+
+  const paint = () => {
+    const v = get();
+    fill.style.transform = `scaleY(${Math.max(v, .0001)})`;
+    pct.textContent = Math.round(v * 100);
+    el.setAttribute('aria-valuenow', Math.round(v * 100));
+  };
+  const update = (v) => { set(Math.min(1, Math.max(0, v))); paint(); applyGains(); };
+
+  // Relative drag (like the iOS volume bar): a stray touch on stage never makes the level jump.
+  let drag = null;
+  el.addEventListener('pointerdown', (e) => {
+    if (drag || (e.target === chip && onChip)) return;
+    drag = { id: e.pointerId, y: e.clientY, v: get(), h: el.clientHeight };
+    el.setPointerCapture(e.pointerId);
+    el.classList.add('dragging');
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    update(drag.v - (e.clientY - drag.y) / drag.h);
+  });
+  const end = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag = null;
+    el.classList.remove('dragging');
+    save();
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('keydown', (e) => {
+    const step = { ArrowRight: .05, ArrowUp: .05, ArrowLeft: -.05, ArrowDown: -.05 }[e.key];
+    if (step) { e.preventDefault(); update(get() + step); save(); }
+  });
+  if (onChip) chip.addEventListener('click', onChip);
+
+  paint();
+  return el;
+}
+
+for (let i = 0; i < CFG.stems; i++) {
+  const el = makeFader({
+    label: i + 1,
+    get: () => state.levels[i],
+    set: (v) => { state.levels[i] = v; },
+    onChip: () => { state.mutes[i] = !state.mutes[i]; applyGains(); save(); render(); },
+  });
+  fadersEl.append(el);
+  faderEls.push(el);
+}
+fadersEl.insertAdjacentHTML('beforeend', '<div class="sep"></div>');
+fadersEl.append(makeFader({ label: 'M', master: true, get: () => state.master, set: (v) => { state.master = v; } }));
+
+function render() {
+  for (const [key] of KEYS) {
+    keyBtns[key].setAttribute('aria-pressed', String(state.key === key));
+    keyBtns[key].classList.toggle('empty', !library[key]?.some(Boolean));
+  }
+  faderEls.forEach((el, i) => {
+    el.classList.toggle('muted', state.mutes[i]);
+    el.classList.toggle('missing', !!state.key && !library[state.key][i]);
+    el.querySelector('.chip').setAttribute('aria-label', state.mutes[i] ? `Ativar via ${i + 1}` : `Mutar via ${i + 1}`);
+  });
+  if (state.key) {
+    const name = KEYS.find(([k]) => k === state.key)[1];
+    statusEl.innerHTML = `Tocando <b>${name} (${state.key})</b>`;
+  } else {
+    statusEl.textContent = libraryReady ? 'Toque em um tom' : 'Carregando…';
+  }
+}
+
+/* Files dialog */
+const dlg = $('#files'), rowsEl = $('#rows'), folderInput = $('#folderInput'), filesInput = $('#filesInput');
+const canPickFolder = 'webkitdirectory' in HTMLInputElement.prototype && !/iPhone|iPad|iPod/.test(navigator.userAgent);
+let pendingKey = null;
+
+$('#pickFolder').hidden = !canPickFolder;
+$('#filesHint').innerHTML = canPickFolder
+  ? `Escolha a pasta que tem as subpastas <code>C D E F G A B</code>, cada uma com os arquivos <code>1.mp3</code> a <code>${CFG.stems}.mp3</code>. Ou envie tom por tom abaixo. Fica salvo neste aparelho.`
+  : `Envie tom por tom: toque em Enviar e selecione os ${CFG.stems} arquivos (<code>1.mp3</code> a <code>${CFG.stems}.mp3</code>). Fica salvo neste aparelho.`;
+
+function renderRows() {
+  rowsEl.innerHTML = '';
+  for (const [key, name] of KEYS) {
+    const local = localLib[key]?.filter(Boolean).length || 0;
+    const total = library[key]?.filter(Boolean).length || 0;
+    const where = local ? 'salvo neste aparelho' : total ? 'pasta do app' : 'sem arquivos';
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<div class="k">${key}</div><div class="info">${name}<small>${total} de ${CFG.stems} vias · ${where}</small></div>`;
+    if (local) {
+      const del = document.createElement('button');
+      del.className = 'pill ghost';
+      del.textContent = 'Limpar';
+      del.addEventListener('click', () => clearKey(key));
+      row.append(del);
+    }
+    const up = document.createElement('button');
+    up.className = 'pill';
+    up.textContent = 'Enviar';
+    up.addEventListener('click', () => { pendingKey = key; filesInput.value = ''; filesInput.click(); });
+    row.append(up);
+    rowsEl.append(row);
+  }
+}
+
+$('#openFiles').addEventListener('click', () => { renderRows(); dlg.showModal(); });
+$('#closeFiles').addEventListener('click', () => dlg.close());
+dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+$('#pickFolder').addEventListener('click', () => { folderInput.value = ''; folderInput.click(); });
+folderInput.addEventListener('change', () => handleFolder(folderInput.files));
+filesInput.addEventListener('change', () => { if (pendingKey) handleKeyFiles(pendingKey, filesInput.files); });
+
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3600);
+}
+
+render();
+Promise.all([loadLocal(), loadServer()]).then(mergeLibrary);
+</script>
+</body>
+</html>

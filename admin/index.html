@@ -171,7 +171,7 @@
   .chart text { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; font-family: inherit; }
   .chart .lbl { fill: var(--text); font-weight: 650; font-size: 12px; }
   .chart .grid-l { stroke: var(--line); stroke-width: 1; shape-rendering: crispEdges; }
-  .chart .bar { fill: var(--accent); transition: fill 120ms ease; }
+  .chart .bar { fill: var(--accent); }
   .chart .bar.on { fill: var(--accent-hi); }
   .chart .cell { transition: stroke 120ms ease; stroke: transparent; stroke-width: 1.5; }
   .chart .cell.on { stroke: #dfe9ff; }
@@ -187,12 +187,63 @@
   #tip.show { opacity: 1; }
   #tip b { display: block; color: var(--text); font-size: 14px; font-weight: 680; font-variant-numeric: tabular-nums; }
 
+  /* entrance motion: only transform, opacity and stroke-dashoffset */
+  .anim .gy { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(var(--from, 0)); }
+  .anim .gx { transform-origin: 0 50%; transform: scaleX(var(--from, 0)); }
+  .anim.in .gy, .anim.in .gx { transform: none; transition: transform 420ms var(--ease-out) var(--d, 0ms), fill 120ms ease, background-color 120ms ease, opacity 160ms ease; }
+  .anim .ln { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  .anim.in .ln { stroke-dashoffset: 0; transition: stroke-dashoffset 800ms var(--ease-out); }
+  .anim .ar, .anim .pt, .anim .fd { opacity: 0; }
+  .anim.in .ar { opacity: 1; transition: opacity 600ms ease 250ms; }
+  .anim.in .pt { opacity: 1; transition: opacity 300ms ease 600ms; }
+  .anim.in .fd { opacity: 1; transition: opacity 320ms ease var(--d, 0ms), stroke 120ms ease; }
+  .anim .arc { stroke-dashoffset: var(--len); }
+  .anim.in .arc { stroke-dashoffset: 0; transition: stroke-dashoffset 800ms var(--ease-out); }
+  .anim .cover { stroke-dashoffset: 0; }
+  .anim.in .cover { stroke-dashoffset: var(--c); transition: stroke-dashoffset 800ms var(--ease-out); }
+  .anim .bub { transform-box: fill-box; transform-origin: center; transform: scale(.6); opacity: 0; }
+  .anim.in .bub { transform: none; opacity: 1; transition: transform 420ms var(--ease-out) var(--d, 0ms), opacity 300ms ease var(--d, 0ms), fill 120ms ease; }
+  .anim.in .bub.dim { opacity: .18; }
+  .anim .fb { transform-origin: 0 50%; transform: scaleX(var(--from, 0)); }
+  .anim.in .fb { transform: none; transition: transform 460ms var(--ease-out) var(--d, 0ms); }
+  @media (min-width: 900px) { .anim .fb { transform-origin: 50% 100%; transform: scaleY(var(--from, 0)); } }
+  @media (prefers-reduced-motion: reduce) { .anim *, .anim.in * { transition: none !important; } }
+  .chart .bar.dim, .hbar.dim, .drow.dim, .donut .seg.dim { opacity: .3; }
+  .hbars.pick .hbar, .hbar { cursor: pointer; }
+  .hbar.sel .hl { color: #cfe0ff; }
+
+  .vrow { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+  .sparkbox { flex: none; width: 96px; max-width: 45%; }
+  .spark { display: block; width: 100%; height: auto; overflow: visible; }
+  .dlt { font-size: 12px; color: var(--muted); }
+  .dlt b { font-weight: 650; }
+  .dlt.good b { color: #4cc38a; } .dlt.bad b { color: #ff8a8d; } .dlt.flat b { color: #aab4c5; }
+  .fchip { display: inline-flex; align-items: center; gap: 10px; align-self: start; justify-self: start; font-size: 13px; color: #cfe0ff; background: var(--accent-soft); border: 1px solid rgba(76, 141, 255, .5); border-radius: 999px; padding: 0 4px 0 14px; }
+  .fchip .pill { min-height: 44px; margin: 0; background: transparent; border-color: transparent; color: #cfe0ff; }
+  .donut { display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr); gap: 18px; align-items: center; }
+  .dring { position: relative; }
+  .dring svg { display: block; width: 100%; height: auto; }
+  .donut .seg { transition: opacity 160ms ease, stroke-width 160ms ease; }
+  .donut .seg.on { opacity: .82; }
+  .dcenter { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; }
+  .dcenter b { font-size: 24px; font-weight: 680; letter-spacing: -.02em; line-height: 1.1; }
+  .dcenter span { font-size: 11.5px; color: var(--muted); }
+  .dlegend { display: grid; gap: 2px; }
+  .drow { appearance: none; background: none; border: 0; color: var(--text); font: inherit; cursor: pointer; display: grid; grid-template-columns: 12px minmax(0, 1fr) auto 40px; gap: 8px; align-items: center; min-height: 44px; padding: 0 6px; border-radius: 10px; text-align: left; transition: opacity 160ms ease, background-color 160ms ease; }
+  .drow i { width: 10px; height: 10px; border-radius: 2px; }
+  .drow .dl { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .drow b { font-size: 13.5px; font-weight: 650; }
+  .drow .dp { font-size: 12px; color: var(--muted); text-align: right; }
+  .drow.sel { background: rgba(76, 141, 255, .1); }
+  @media (hover: hover) and (pointer: fine) { .drow:hover { background: rgba(76, 141, 255, .06); } }
+  @media (max-width: 420px) { .donut { grid-template-columns: 1fr; } .dring { max-width: 170px; margin: 0 auto; } }
+
   .hbars { display: grid; grid-template-columns: minmax(28px, max-content) 1fr max-content; gap: 10px; }
   .hbar { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 24px; outline: none; border-radius: 6px; }
   .hbar:focus-visible { box-shadow: 0 0 0 2px var(--accent-soft); }
   .hbar .hl { font-size: 13px; color: var(--text); font-weight: 600; max-width: 18ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .hbar .ht { height: 12px; position: relative; }
-  .hbar .hf { position: absolute; left: 0; top: 0; bottom: 0; width: var(--p); min-width: 2px; background: var(--accent); border-radius: 0 4px 4px 0; transition: background-color 120ms ease; }
+  .hbar .hf { position: absolute; left: 0; top: 0; bottom: 0; width: var(--p); min-width: 2px; background: var(--accent); border-radius: 0 4px 4px 0; }
   .hbar.on .hf { background: var(--accent-hi); }
   .hbar .hv { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
   .hbar .hv b { color: var(--text); font-weight: 650; }
@@ -208,9 +259,70 @@
   .scale i { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: block; }
 
   .seg { display: inline-grid; grid-auto-flow: column; gap: 4px; padding: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
-  .seg button { appearance: none; border: 0; background: transparent; color: var(--muted); min-height: 38px; min-width: 60px; padding: 0 12px; border-radius: 10px; font-size: 13px; font-weight: 650; cursor: pointer; transition: background-color 200ms ease, color 200ms ease, transform 140ms var(--ease-out); }
+  .seg button { appearance: none; border: 0; background: transparent; color: var(--muted); min-height: 44px; min-width: 60px; padding: 0 12px; border-radius: 10px; font-size: 13px; font-weight: 650; cursor: pointer; transition: background-color 200ms ease, color 200ms ease, transform 140ms var(--ease-out); }
   .seg button:active { transform: scale(.97); }
   .seg button[aria-pressed="true"] { background: #232e42; color: var(--text); }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin: -4px 0 10px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .chart .grp { transition: opacity 120ms ease; }
+  .chart .grp.on { opacity: .78; }
+  #tip .trs { display: grid; gap: 2px; margin-top: 2px; }
+  #tip .tr { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  #tip .tr i { width: 10px; height: 3px; border-radius: 2px; flex: none; }
+  #tip .tr b { display: inline; font-size: 12.5px; margin-left: auto; padding-left: 14px; }
+  .mapgrid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+  .map svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+  .map .land { fill: #182132; stroke: #2c3a54; stroke-width: 1.2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  .map .bub { fill: rgba(76, 141, 255, .34); stroke: #4c8dff; stroke-width: 1.5; vector-effect: non-scaling-stroke; transition: fill 120ms ease; }
+  .map .bub.on { fill: rgba(134, 179, 255, .62); }
+  .kpis.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .sec-title { font-size: 17px; font-weight: 680; letter-spacing: -.01em; margin-top: 8px; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding-top: 14px; font-size: 12.5px; color: var(--muted); }
+  .pill[disabled] { opacity: .45; cursor: default; }
+  .twol { display: inline-grid; gap: 1px; }
+  .twol small { font-size: 12px; color: var(--muted); }
+  button.linkcell { appearance: none; background: none; border: 0; color: inherit; font: inherit; text-align: left; padding: 0; cursor: pointer; min-height: 44px; }
+  .help.warn { color: #f0c479; }
+  .rule { display: grid; gap: 12px; align-content: start; }
+  .rule.off .msgprev { opacity: .6; }
+  .rule-name { font-size: 15.5px; font-weight: 650; letter-spacing: -.01em; overflow-wrap: anywhere; }
+  .rule-when { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .rule-meta { display: flex; gap: 8px 10px; flex-wrap: wrap; align-items: center; }
+  .rule-count { font-size: 12.5px; color: var(--muted); }
+  .rule-count b { color: var(--text); font-weight: 650; }
+  .msgprev { display: flex; align-items: center; gap: 12px; background: #1b2434; border: 1px solid #2c3a54; border-radius: 16px; padding: 12px 14px; box-shadow: 0 10px 26px -14px rgba(0, 0, 0, .8); }
+  .msgprev .msgtxt { min-width: 0; flex: 1; }
+  .msgprev b { display: block; font-size: 13.5px; font-weight: 650; overflow-wrap: anywhere; }
+  .msgprev b.ph { color: var(--muted); font-weight: 600; }
+  .msgprev p { font-size: 12.5px; color: #b6c1d4; margin-top: 2px; overflow-wrap: anywhere; }
+  .msgprev .msgbtn { flex: none; background: var(--accent); color: #fff; font-size: 12.5px; font-weight: 650; padding: 8px 12px; border-radius: 999px; }
+  .switch.ok:checked { background: var(--accent); }
+  .seg.wrapseg { display: flex; flex-wrap: wrap; }
+  .seg.wrapseg button { flex: 1 1 auto; min-height: 44px; }
+  .conds { display: grid; gap: 10px; }
+  .cond { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.1fr) minmax(0, 1fr) 46px; gap: 8px; align-items: center; }
+  .cond .rm { padding: 0; width: 46px; justify-content: center; }
+  .cond .rm svg { width: 16px; height: 16px; }
+  .cond .condhelp { grid-column: 1 / -1; margin-top: -2px; }
+  .builder { border: 1px solid var(--line); border-radius: 16px; padding: 0 14px; margin: 14px 0 0; background: rgba(76, 141, 255, .04); }
+  .builder .setrow:first-of-type { padding-top: 16px; }
+  .livebox { display: grid; gap: 8px; transition: opacity 200ms ease; }
+  .livebox.busy { opacity: .55; }
+  .livehead { font-size: 13.5px; color: var(--muted); } .livehead b { color: var(--text); font-size: 15px; }
+  .liverow { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; background: var(--panel); }
+  .liverow .who2 b { display: block; font-size: 13px; font-weight: 650; overflow-wrap: anywhere; } .liverow .who2 span { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fact { font-size: 11.5px; color: var(--muted); background: #1b2434; border-radius: 8px; padding: 3px 8px; } .fact b { color: var(--text); font-weight: 650; }
+  .sentence { font-size: 13.5px; line-height: 1.5; color: #cfe0ff; background: var(--accent-soft); border: 1px solid rgba(76, 141, 255, .4); border-radius: 12px; padding: 10px 14px; }
+  @media (max-width: 620px) {
+    .cond { grid-template-columns: minmax(0, 1fr) 46px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+    .cond > .input, .cond > .novalue { grid-column: 1; }
+    .cond .rm { grid-column: 2; grid-row: 1; }
+  }
+  .switch[disabled] { opacity: .6; }
+  @media (hover: hover) and (pointer: fine) { button.linkcell:hover b { text-decoration: underline; text-underline-offset: 3px; } }
 
   /* ---------------------------------------------------------------- lists and tables */
   .urow { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 12px; min-height: 56px; }
@@ -329,7 +441,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ---------------------------------------------------------------- phone and tablet */
-  @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .g3 { grid-template-columns: 1fr; } }
+  @media (max-width: 1100px) { .kpis, .kpis.five { grid-template-columns: repeat(3, minmax(0, 1fr)); } .g3 { grid-template-columns: 1fr; } .mapgrid { grid-template-columns: 1fr; } }
   @media (max-width: 860px) {
     #shell { grid-template-columns: minmax(0, 1fr); }
     .side {
@@ -350,7 +462,9 @@
     .mhead .out { margin-left: auto; }
     .topbar h1 { font-size: 22px; }
     .topbar .right { margin-left: 0; width: 100%; justify-content: space-between; }
-    .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .kpis, .kpis.five { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .kpis.five .kpi:first-child { grid-column: span 2; }
+    .msgprev { flex-wrap: wrap; }
     .kpi { padding: 14px; border-radius: 16px; }
     .kpi .v { font-size: 22px; }
     .kpi.hero { grid-row: auto; gap: 10px; }
@@ -414,6 +528,7 @@
 </div>
 
 <dialog id="userDlg" aria-label="Ficha do usuário"></dialog>
+<dialog id="autoDlg" aria-label="Regra de automação"></dialog>
 <dialog id="confirmDlg" class="small" aria-label="Confirmação"></dialog>
 <div id="tip" role="tooltip"></div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -433,15 +548,16 @@ const LIFETIME_DATE = '2099-12-31T00:00:00Z';
 const TZ = 'America/Sao_Paulo';
 const KEYS_ORDER = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const DOW = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-const MSG_DB = 'O banco ainda não foi preparado: rode supabase/admin.sql';
+const MSG_DB = 'O banco ainda não foi preparado: rode supabase/';
 
 let sb = null;
 const S = {
   session: null, demo: false, view: 'overview', days: 30, loadedAt: null, loading: false,
   filter: 'all', query: '', sort: { key: 'created_at', dir: -1 }, shown: 60,
+  geoMetric: 'accounts', geoState: null, geoCity: null, payMonth: null, lq: '', lfilter: 'all', lpage: 0, payq: '', payShown: 15, logShown: 25, runFilter: '', runShown: 15,
 };
-const D = { users: null, stats: null, log: null, settings: null, admins: null };   // data per resource
-const E = { users: null, stats: null, log: null, settings: null, admins: null };   // error message per resource
+const D = { users: null, stats: null, log: null, settings: null, admins: null, geo: null, logins: null, autos: null, runs: null, stats2: null };   // data per resource
+const E = { users: null, stats: null, log: null, settings: null, admins: null, geo: null, logins: null, autos: null, runs: null, stats2: null };   // error message per resource
 
 /* ------------------------------------------------------------------ tiny helpers */
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -518,10 +634,10 @@ function toast(msg, isErr) {
 }
 
 // short pt-BR message for any Supabase or network error
-function explain(err) {
+function explain(err, file) {
   const code = String(err?.code || '');
   const msg = String(err?.message || err || '');
-  if (['PGRST202', 'PGRST205', '42883', '42P01'].includes(code) || /could not find the (function|table)|does not exist|schema cache/i.test(msg)) return MSG_DB;
+  if (['PGRST202', 'PGRST204', 'PGRST205', '42883', '42P01', '42703'].includes(code) || /could not find the (function|table)|does not exist|schema cache/i.test(msg)) return MSG_DB + (file || 'admin.sql');
   if (/forbidden|permission denied|row-level security/i.test(msg) || code === '42501') return 'Sem permissão para isso. Confira se o seu e-mail está na lista de administradores.';
   if (/cannot delete yourself/i.test(msg)) return 'Você não pode excluir a própria conta por aqui.';
   if (/failed to fetch|network|load failed|timeout/i.test(msg)) return 'Sem conexão com o servidor. Confira a internet.';
@@ -575,7 +691,7 @@ function summary() {
     if (l.expired && !l.lifetime) { c.expired++; if (u.plan === 'teste') c.expiredTrial++; }
     if (expiresIn(u, 7)) c.soon7++;
   }
-  c.mrr = c.paid * PRICE;
+  c.mrr = c.paid * price();
   c.conv = (c.paid + c.expiredTrial) ? 100 * c.paid / (c.paid + c.expiredTrial) : null;
   return c;
 }
@@ -584,10 +700,16 @@ function summary() {
 const RES = {
   users: () => sb.rpc('admin_users'),
   stats: () => sb.rpc('admin_stats', { p_days: S.days }),
-  log: () => sb.from('license_log').select('*').order('created_at', { ascending: false }).limit(200),
+  stats2: () => sb.rpc('admin_stats', { p_days: S.days * 2 }),   // only its days[] is used: the previous equivalent period
+  log: () => sb.from('license_log').select('*').order('created_at', { ascending: false }).limit(2000),
   settings: () => sb.from('app_settings').select('*'),
   admins: () => sb.from('admins').select('*').order('created_at', { ascending: true }),
+  geo: () => sb.rpc('admin_geo', { p_days: S.days }),
+  logins: () => sb.rpc('admin_logins', { p_limit: 1000 }),
+  autos: () => sb.from('automations').select('*').order('id'),
+  runs: () => sb.rpc('admin_automation_runs', { p_limit: 300 }),
 };
+const SQL_FILE = { geo: 'admin2.sql', logins: 'admin2.sql', autos: 'admin2.sql', runs: 'admin2.sql' };   // which script creates each resource
 const ALL = Object.keys(RES);
 
 async function load(names = ALL) {
@@ -600,7 +722,7 @@ async function load(names = ALL) {
       if (error) throw error;
       D[name] = data; E[name] = null;
     } catch (err) {
-      E[name] = explain(err);
+      E[name] = explain(err, SQL_FILE[name]);
     }
   }));
   S.loading = false; S.loadedAt = new Date();
@@ -635,6 +757,26 @@ const ro = ('ResizeObserver' in window) ? new ResizeObserver(entries => {
     if (c && w && w !== c.w) { c.w = w; c.draw(w); }
   }
 }) : null;
+
+/* Entrance motion. A visual is born with class "anim" (marks collapsed) and gets "in" when it scrolls into view.
+   PREV remembers the last values drawn under each id: same values = no replay, new values = marks grow from the old size. */
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
+const PREV = new Map();
+const io = ('IntersectionObserver' in window) ? new IntersectionObserver(entries => {
+  entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+}, { threshold: .2 }) : null;
+function motion(el, id, values) {
+  const sig = JSON.stringify(values);
+  const old = id ? PREV.get(id) : null;
+  if (id) PREV.set(id, { sig, values });
+  el.classList.add('anim');
+  if (REDUCED.matches || !io || (old && old.sig === sig)) { el.classList.add('in'); return () => 1; }
+  io.observe(el);
+  // start scale for mark i: old value / new value (clamped), or 0 when there is nothing to grow from
+  return i => { const a = old && old.values.length === values.length ? Number(old.values[i]) : 0, b = Number(values[i]); return b > 0 && a > 0 ? Math.max(.02, Math.min(3, a / b)) : 0; };
+}
+const stagger = (i, n) => Math.round(i * Math.min(18, 180 / Math.max(1, n))) + 'ms';
+
 function mount(draw) {
   const el = h('div', { class: 'chart' });
   el.__chart = { w: 0, draw: w => { el.replaceChildren(draw(w)); } };
@@ -686,14 +828,15 @@ function emptyChart(custom) {
   return h('div', { class: 'empty' }, svg, h('b', null, custom || 'Ainda sem dados nesse período'), h('span', null, 'O BI começa a contar quando os eventos entram no ar.'));
 }
 
-// points: [{ label: 'dd/mm', value: number }]
+let gradSeq = 0;
+// points: [{ label: 'dd/mm', value, tip }]; opts: id, unit, fmt, fmtShort, height, aria, emptyText, onPick(i, point), picked (index)
 function seriesChart(kind, points, opts = {}) {
   if (!points.length || points.every(p => !p.value)) return emptyChart(opts.emptyText);
   const unit = opts.unit || '';
   const fmt = opts.fmt || (v => nf(v) + (unit ? ' ' + unit : ''));
   const fmtShort = opts.fmtShort || nf;
-  return mount(w => {
-    const H = opts.height || 200, mL = 36, mR = kind === 'line' ? 34 : 8, mT = 14, mB = 24;
+  const el = mount(w => {
+    const H = opts.height || 200, mL = 36, mR = kind === 'line' ? 34 : 8, mT = 16, mB = 24;
     const iw = Math.max(40, w - mL - mR), ih = H - mT - mB;
     const { top, ticks } = niceScale(Math.max(...points.map(p => p.value)));
     const n = points.length;
@@ -709,44 +852,53 @@ function seriesChart(kind, points, opts = {}) {
     points.forEach((p, i) => {
       if ((n - 1 - i) % every === 0) svg.append(s('text', { x: xAt(i), y: H - 6, 'text-anchor': i === n - 1 && kind === 'line' ? 'end' : 'middle' }, p.label));
     });
+    let maxI = 0;
+    points.forEach((p, i) => { if (p.value > points[maxI].value) maxI = i; });
 
     const marks = [];
     let cross = null, dot = null;
     if (kind === 'line') {
+      const gid = 'g' + (++gradSeq);
+      const grad = s('linearGradient', { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 }, s('stop', { offset: '0%', 'stop-color': '#4c8dff', 'stop-opacity': .32 }), s('stop', { offset: '100%', 'stop-color': '#4c8dff', 'stop-opacity': 0 }));
+      svg.append(s('defs', null, grad));
       const path = points.map((p, i) => (i ? 'L' : 'M') + xAt(i).toFixed(1) + ' ' + yAt(p.value).toFixed(1)).join(' ');
-      svg.append(s('path', { d: path + ` L${xAt(n - 1)} ${yAt(0)} L${xAt(0)} ${yAt(0)} Z`, fill: 'rgba(76,141,255,.10)' }));
-      svg.append(s('path', { d: path, fill: 'none', stroke: '#4c8dff', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+      svg.append(s('path', { class: 'ar', d: path + ` L${xAt(n - 1)} ${yAt(0)} L${xAt(0)} ${yAt(0)} Z`, fill: `url(#${gid})` }));
+      svg.append(s('path', { class: 'ln', d: path, pathLength: 1, fill: 'none', stroke: '#4c8dff', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
       const last = points[n - 1];
-      svg.append(s('circle', { cx: xAt(n - 1), cy: yAt(last.value), r: 4.5, fill: '#4c8dff', stroke: '#131a27', 'stroke-width': 2 }));
-      svg.append(s('text', { class: 'lbl', x: xAt(n - 1) + 9, y: yAt(last.value) + 4 }, fmtShort(last.value)));
+      svg.append(s('circle', { class: 'pt', cx: xAt(n - 1), cy: yAt(last.value), r: 4.5, fill: '#4c8dff', stroke: '#131a27', 'stroke-width': 2 }));
+      svg.append(s('text', { class: 'lbl pt', x: xAt(n - 1) + 9, y: yAt(last.value) + 4 }, fmtShort(last.value)));
+      if (maxI !== n - 1 && xAt(n - 1) - xAt(maxI) > 60) {          // second data label: the peak, when it is not the last point
+        svg.append(s('circle', { class: 'pt', cx: xAt(maxI), cy: yAt(points[maxI].value), r: 3.5, fill: '#4c8dff', stroke: '#131a27', 'stroke-width': 2 }));
+        svg.append(s('text', { class: 'lbl pt', x: Math.max(xAt(maxI), mL + 16), y: yAt(points[maxI].value) - 9, 'text-anchor': 'middle' }, fmtShort(points[maxI].value)));
+      }
       cross = s('line', { y1: mT, y2: mT + ih, stroke: '#46536b', 'stroke-width': 1, visibility: 'hidden' });
       dot = s('circle', { r: 4.5, fill: '#86b3ff', stroke: '#131a27', 'stroke-width': 2, visibility: 'hidden' });
       svg.append(cross, dot);
     } else {
       const bw = Math.max(2, Math.min(24, band - 2));
-      let maxI = 0;
-      points.forEach((p, i) => { if (p.value > points[maxI].value) maxI = i; });
       points.forEach((p, i) => {
         const x = xAt(i) - bw / 2, y0 = yAt(0), y = p.value ? Math.min(yAt(p.value), y0 - 2) : y0;
         const r = Math.min(4, bw / 2, y0 - y);
         const d = p.value ? `M${x} ${y0} V${y + r} Q${x} ${y} ${x + r} ${y} H${x + bw - r} Q${x + bw} ${y} ${x + bw} ${y + r} V${y0} Z` : '';
-        const bar = s('path', { class: 'bar', d });
+        const bar = s('path', { class: 'bar gy' + (opts.picked != null && opts.picked !== i ? ' dim' : ''), d, style: `--from:${el.__from(i)};--d:${stagger(i, n)}` });
         marks.push(bar); svg.append(bar);
       });
-      // selective direct label: only the peak
       const lx = Math.min(Math.max(xAt(maxI), mL + 14), w - mR - 14);
-      svg.append(s('text', { class: 'lbl', x: lx, y: yAt(points[maxI].value) - 6, 'text-anchor': 'middle' }, fmtShort(points[maxI].value)));
+      svg.append(s('text', { class: 'lbl pt', x: lx, y: yAt(points[maxI].value) - 6, 'text-anchor': 'middle' }, fmtShort(points[maxI].value)));
     }
 
     // one hit layer for the whole plot: the pointer only has to be closest to a date
-    const hit = s('rect', { x: mL - 4, y: 0, width: iw + mR + 4, height: H, fill: 'transparent' });
+    const hit = s('rect', { x: mL - 4, y: 0, width: iw + mR + 4, height: H, fill: 'transparent', style: opts.onPick ? 'cursor:pointer' : null });
     let cur = -1;
-    const move = ev => {
+    const idxAt = ev => {
       const box = svg.getBoundingClientRect();
       const px = (ev.clientX - box.left) * (w / box.width);
-      const i = kind === 'line'
+      return kind === 'line'
         ? Math.max(0, Math.min(n - 1, Math.round((px - mL) / (n === 1 ? 1 : iw / (n - 1)))))
         : Math.max(0, Math.min(n - 1, Math.floor((px - mL) / band)));
+    };
+    const move = ev => {
+      const i = idxAt(ev);
       if (i !== cur) {
         if (marks[cur]) marks[cur].classList.remove('on');
         cur = i;
@@ -756,7 +908,7 @@ function seriesChart(kind, points, opts = {}) {
           dot.setAttribute('cx', xAt(i)); dot.setAttribute('cy', yAt(points[i].value)); dot.setAttribute('visibility', 'visible');
         }
       }
-      showTip(ev.clientX, ev.clientY, fmt(points[i].value), points[i].label);
+      showTip(ev.clientX, ev.clientY, fmt(points[i].value), points[i].tip || points[i].label);
     };
     const leave = () => {
       if (marks[cur]) marks[cur].classList.remove('on');
@@ -767,27 +919,81 @@ function seriesChart(kind, points, opts = {}) {
     hit.addEventListener('pointerdown', move);
     hit.addEventListener('pointerleave', lazyOff(leave));
     hit.addEventListener('pointercancel', leave);
+    if (opts.onPick) hit.addEventListener('click', ev => { const i = idxAt(ev); hideTip(); opts.onPick(i, points[i]); });
     svg.append(hit);
     return svg;
   });
+  el.__from = motion(el, opts.id, points.map(p => p.value));
+  return el;
 }
 
-// rows: [{ label, value, note }]
+// rows: [{ label, value, note, tip, key }]; opts: id, unit, emptyText, onPick(row), picked (key or label)
 function hbars(rows, opts = {}) {
   if (!rows.length || rows.every(r => !r.value)) return emptyChart(opts.emptyText);
   const max = Math.max(...rows.map(r => r.value));
-  const box = h('div', { class: 'hbars' });
-  rows.forEach(r => {
-    const row = h('div', { class: 'hbar', tabindex: 0 },
+  const box = h('div', { class: 'hbars' + (opts.onPick ? ' pick' : '') });
+  const from = motion(box, opts.id, rows.map(r => r.value));
+  rows.forEach((r, i) => {
+    const key = r.key ?? r.label;
+    const row = h('div', { class: 'hbar' + (opts.picked != null && opts.picked !== key ? ' dim' : ''), tabindex: 0, role: opts.onPick ? 'button' : null },
       h('span', { class: 'hl', title: r.label }, r.label),
-      h('span', { class: 'ht' }, r.value ? h('span', { class: 'hf', style: `--p:${Math.max(1, 100 * r.value / max).toFixed(1)}%` }) : null),
+      h('span', { class: 'ht' }, r.value ? h('span', { class: 'hf gx', style: `--p:${Math.max(1, 100 * r.value / max).toFixed(1)}%;--from:${from(i)};--d:${stagger(i, rows.length)}` }) : null),
       h('span', { class: 'hv' }, h('b', null, nf(r.value)), r.note ? ' ' + r.note : ''));
     const on = ev => { row.classList.add('on'); const b = row.getBoundingClientRect(); showTip(ev.clientX ?? b.left + 40, ev.clientY ?? b.top, nf(r.value) + (opts.unit ? ' ' + opts.unit : ''), r.tip || r.label); };
     const off = () => { row.classList.remove('on'); hideTip(); };
     row.addEventListener('pointermove', on); row.addEventListener('pointerdown', on);
     row.addEventListener('pointerleave', lazyOff(off)); row.addEventListener('focus', on); row.addEventListener('blur', off);
+    const pick = () => {
+      hideTip();
+      if (opts.onPick) return opts.onPick(r);
+      const was = row.classList.contains('sel');          // no real filter here: just spotlight the item
+      box.querySelectorAll('.hbar').forEach(x => { x.classList.remove('sel'); x.classList.toggle('dim', !was && x !== row); });
+      if (!was) row.classList.add('sel');
+    };
+    row.addEventListener('click', pick);
+    row.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); } });
     box.append(row);
   });
+  return box;
+}
+
+const SCALE = ['#4c8dff', '#2f5fbf', '#9dbcff', '#1d3a78', '#56627a'];   // composition scale: one blue family plus gray
+// parts: [{ label, value, key }] (up to 5); opts: id, unit, centerLabel, onPick(part), picked (key)
+function donut(parts, opts = {}) {
+  parts = parts.filter(p => p.value > 0);
+  if (!parts.length) return emptyChart(opts.emptyText);
+  const total = parts.reduce((a, p) => a + p.value, 0);
+  const R = 46, C = 2 * Math.PI * R, GAP = parts.length > 1 ? 2.2 : 0;
+  const box = h('div', { class: 'donut' });
+  motion(box, opts.id, parts.map(p => p.value));
+  const svg = s('svg', { viewBox: '0 0 120 120', role: 'img', 'aria-label': opts.aria || 'Distribuição' });
+  const legend = h('div', { class: 'dlegend' });
+  let acc = 0;
+  parts.forEach((p, i) => {
+    const key = p.key ?? p.label, len = C * p.value / total, color = SCALE[i % SCALE.length];
+    const dim = opts.picked != null && opts.picked !== key;
+    const seg = s('circle', { class: 'seg' + (dim ? ' dim' : ''), cx: 60, cy: 60, r: R, fill: 'none', stroke: color, 'stroke-width': 16,
+      'stroke-dasharray': `${Math.max(.5, len - GAP).toFixed(2)} ${C.toFixed(2)}`, 'stroke-dashoffset': (-acc).toFixed(2), transform: 'rotate(-90 60 60)', style: opts.onPick ? 'cursor:pointer' : null });
+    acc += len;
+    const share = Math.round(100 * p.value / total);
+    const row = h('button', { class: 'drow' + (dim ? ' dim' : ''), type: 'button' }, h('i', { style: 'background:' + color }), h('span', { class: 'dl' }, p.label), h('b', { class: 'num' }, nf(p.value)), h('span', { class: 'dp num' }, share + '%'));
+    const on = ev => { seg.classList.add('on'); showTip(ev.clientX, ev.clientY, nf(p.value) + (opts.unit ? ' ' + opts.unit : ''), p.label + ', ' + share + '% do total'); };
+    const off = () => { seg.classList.remove('on'); hideTip(); };
+    const pick = () => {
+      hideTip();
+      if (opts.onPick) return opts.onPick(p);
+      const was = row.classList.contains('sel');
+      box.querySelectorAll('.drow, .seg').forEach(x => { x.classList.remove('sel'); x.classList.add('dim'); });
+      if (was) box.querySelectorAll('.drow, .seg').forEach(x => x.classList.remove('dim'));
+      else { row.classList.add('sel'); row.classList.remove('dim'); seg.classList.remove('dim'); }
+    };
+    seg.addEventListener('pointermove', on); seg.addEventListener('pointerdown', on); seg.addEventListener('pointerleave', lazyOff(off)); seg.addEventListener('pointercancel', off);
+    seg.addEventListener('click', pick); row.addEventListener('click', pick);
+    svg.append(seg); legend.append(row);
+  });
+  // the sweep: a surface colored ring on top that unwinds clockwise (stroke-dashoffset only)
+  svg.append(s('circle', { class: 'cover', cx: 60, cy: 60, r: R, fill: 'none', stroke: '#131a27', 'stroke-width': 19, 'stroke-dasharray': C.toFixed(2), style: `--c:${(-C).toFixed(2)}`, transform: 'rotate(-90 60 60)', 'pointer-events': 'none' }));
+  box.append(h('div', { class: 'dring' }, svg, h('div', { class: 'dcenter' }, h('b', { class: 'num' }, nf(total)), h('span', null, opts.centerLabel || 'total'))), legend);
   return box;
 }
 
@@ -798,7 +1004,7 @@ function heatmap(hours) {
   hours.forEach(x => { if (grid[x.dow] && x.hour >= 0 && x.hour < 24) grid[x.dow][x.hour] = Number(x.minutes) || 0; });
   const max = Math.max(1, ...grid.flat());
   const wrap = h('div');
-  wrap.append(mount(w => {
+  const el = mount(w => {
     const mL = 32, mT = 18, gap = 2;
     const cw = (w - mL) / 24;
     const ch = Math.max(17, Math.min(26, cw));
@@ -810,8 +1016,8 @@ function heatmap(hours) {
       svg.append(s('text', { x: 0, y: mT + ch * d + ch / 2 + 4 }, DOW[d]));
       row.forEach((v, hr) => {
         const cell = s('rect', {
-          class: 'cell', x: mL + cw * hr + gap / 2, y: mT + ch * d + gap / 2, width: Math.max(2, cw - gap), height: ch - gap, rx: 3,
-          fill: v ? '#4c8dff' : '#1a2333', 'fill-opacity': v ? (0.18 + 0.82 * v / max).toFixed(2) : 1,
+          class: 'cell fd', x: mL + cw * hr + gap / 2, y: mT + ch * d + gap / 2, width: Math.max(2, cw - gap), height: ch - gap, rx: 3,
+          fill: v ? '#4c8dff' : '#1a2333', 'fill-opacity': v ? (0.18 + 0.82 * v / max).toFixed(2) : 1, style: `--d:${hr * 16}ms`,
         });
         const on = ev => { cell.classList.add('on'); showTip(ev.clientX, ev.clientY, nf(v) + ' min', DOW[d] + ', ' + hr + 'h'); };
         const off = () => { cell.classList.remove('on'); hideTip(); };
@@ -821,7 +1027,9 @@ function heatmap(hours) {
       });
     });
     return svg;
-  }));
+  });
+  motion(el, 'heat', grid.flat());
+  wrap.append(el);
   const scale = h('div', { class: 'scale' }, 'menos');
   [.18, .4, .6, .8, 1].forEach(o => scale.append(h('i', { style: `opacity:${o}` })));
   scale.append('mais', h('span', { style: 'margin-left:auto' }, 'pico: ' + nf(max) + ' min em uma hora'));
@@ -836,10 +1044,51 @@ function gauge(value, title, sub) {
   const svg = s('svg', { viewBox: '0 0 130 76', role: 'img', 'aria-label': title + ': ' + (has ? v + '%' : 'sem dados') });
   const arc = 'M13 68 A52 52 0 0 1 117 68';
   svg.append(s('path', { d: arc, fill: 'none', stroke: 'rgba(76,141,255,.16)', 'stroke-width': 10, 'stroke-linecap': 'round' }));
-  if (has && v > 0) svg.append(s('path', { d: arc, fill: 'none', stroke: '#4c8dff', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-dasharray': `${(C * v / 100).toFixed(1)} ${C.toFixed(1)}` }));
-  return h('div', { class: 'gauge' }, svg,
-    h('div', { class: 'gv' + (has ? '' : ' none') }, has ? pct(v) : 'sem dados'),
-    h('div', { class: 'gl' }, h('b', null, title), ' ', sub));
+  const len = C * v / 100;
+  if (has && v > 0) svg.append(s('path', { class: 'arc', d: arc, fill: 'none', stroke: '#4c8dff', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-dasharray': `${len.toFixed(1)} ${(C + 20).toFixed(1)}`, style: `--len:${len.toFixed(1)}` }));
+  const valEl = h('div', { class: 'gv' + (has ? '' : ' none') }, has ? pct(v) : 'sem dados');
+  if (has) countUp(valEl, v, x => pct(x));
+  const box = h('div', { class: 'gauge' }, svg, valEl, h('div', { class: 'gl' }, h('b', null, title), ' ', sub));
+  if (has && v > 0) motion(box, 'gauge-' + title, [v]);
+  return box;
+}
+
+/* ------------------------------------------------------------------ KPI tiles: count-up, change vs previous period, sparkline */
+const counters = [];
+// the final text is written first, so a frozen rAF (hidden tab) still shows the right number
+function countUp(el, to, fmt) { el.textContent = fmt(to); if (isFinite(to) && to !== 0) counters.push({ el, to, fmt }); }
+function runCounters() {
+  const list = counters.splice(0);
+  if (REDUCED.matches || !list.length || document.visibilityState !== 'visible') return;
+  const t0 = performance.now(), D_MS = 700;
+  const step = now => {
+    const k = Math.min(1, (now - t0) / D_MS), e = 1 - Math.pow(1 - k, 3);
+    list.forEach(c => { if (c.el.isConnected) c.el.textContent = c.fmt(k === 1 ? c.to : (Number.isInteger(c.to) ? Math.round(c.to * e) : c.to * e)); });
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+function sparkline(values) {
+  const vals = values.map(Number);
+  if (vals.length < 2 || vals.every(v => !v)) return null;
+  const W = 96, H = 30, max = Math.max(...vals), min = Math.min(...vals, 0);
+  const x = i => 2 + i * (W - 6) / (vals.length - 1), y = v => H - 3 - (max === min ? 0 : (v - min) / (max - min)) * (H - 8);
+  const d = vals.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ');
+  const svg = s('svg', { class: 'spark', viewBox: `0 0 ${W} ${H}`, 'aria-hidden': 'true' },
+    s('path', { class: 'ln', d, pathLength: 1, fill: 'none', stroke: '#4c8dff', 'stroke-width': 1.6, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }),
+    s('circle', { class: 'pt', cx: x(vals.length - 1), cy: y(vals[vals.length - 1]), r: 2.6, fill: '#4c8dff' }));
+  const box = h('span', { class: 'sparkbox' }, svg);
+  motion(box, null, vals);
+  return box;
+}
+// delta: { cur, prev, goodUp } -> arrow, % and color; without a base it says so instead of inventing one
+function deltaLine(delta) {
+  if (!delta) return null;
+  const { cur, prev } = delta, goodUp = delta.goodUp !== false;
+  if (prev == null || !isFinite(prev) || prev <= 0 || cur == null) return h('div', { class: 'dlt none' }, 'sem base de comparação');
+  const p = 100 * (cur - prev) / prev, flat = Math.abs(p) < .5;
+  const cls = flat ? 'flat' : (p > 0) === goodUp ? 'good' : 'bad';
+  return h('div', { class: 'dlt ' + cls }, h('b', { class: 'num' }, (flat ? '→ ' : p > 0 ? '↑ ' : '↓ ') + Math.abs(p).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%'), ' ' + (delta.label || 'vs período anterior'));
 }
 
 /* ------------------------------------------------------------------ shared pieces */
@@ -854,11 +1103,18 @@ function avatar(u, lg) {
   return a;
 }
 function badge(u) { const l = lic(u); return h('span', { class: 'badge ' + l.cls }, l.label); }
+// value: a number counts up (opts.fmtNum formats it), a string is shown as is; opts: hero, wide, est, dot, delta, spark
 function kpi(label, value, sub, opts = {}) {
+  const v = h('div', { class: 'v' });
+  if (typeof value === 'number' && isFinite(value)) countUp(v, value, opts.fmtNum || nf); else v.textContent = value;
   return h('div', { class: 'kpi' + (opts.hero ? ' hero' : '') + (opts.wide ? ' wide' : '') },
     h('div', { class: 'l' }, opts.dot ? h('i', { class: 'dot ' + opts.dot }) : null, label, opts.est ? h('span', { class: 'tag' }, 'estimado') : null),
-    h('div', { class: 'v' }, value),
+    h('div', { class: 'vrow' }, v, opts.spark ? sparkline(opts.spark) : null),
+    deltaLine(opts.delta),
     sub ? h('div', { class: 's' }, sub) : null);
+}
+function filterChip(text, clear) {
+  return h('div', { class: 'fchip' }, h('span', null, 'filtro: ', h('b', null, text)), h('button', { class: 'pill', type: 'button', onclick: clear }, 'Limpar'));
 }
 function userRow(u, action) {
   const l = lic(u);
@@ -874,7 +1130,7 @@ function periodSeg() {
   const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Período' });
   [7, 30, 90].forEach(n => seg.append(h('button', {
     type: 'button', 'aria-pressed': String(S.days === n),
-    onclick: () => { if (S.days === n) return; S.days = n; renderTop(); load(['stats']); },
+    onclick: () => { if (S.days === n) return; S.days = n; renderTop(); load(['stats', 'stats2', 'geo']); },
   }, n + ' dias')));
   return seg;
 }
@@ -884,23 +1140,772 @@ function fillDays(field) {                             // stats.days -> one poin
   return lastDays(S.days).map(k => ({ label: dayLabel(k), value: map.get(k) || 0 }));
 }
 function sumDays(field) { return fillDays(field).reduce((a, p) => a + p.value, 0); }
+function prevSum(field) {                              // same length window right before the current one; null when it was not loaded
+  if (!D.stats2 || !Array.isArray(D.stats2.days)) return null;
+  const first = lastDays(S.days)[0], start = dayKey(Date.now() - (S.days * 2 - 1) * DAY);
+  return D.stats2.days.filter(d => { const k = String(d.day).slice(0, 10); return k < first && k >= start; }).reduce((a, d) => a + (Number(d[field]) || 0), 0);
+}
+function statKpi(label, field, opts = {}) {
+  const pts = fillDays(field), total = pts.reduce((a, p) => a + p.value, 0);
+  const cur = opts.avg ? total / S.days : total, prev = prevSum(field);
+  return kpi(label, opts.avg ? Math.round(cur * 10) / 10 : cur, opts.sub || null, { fmtNum: opts.avg ? (v => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 1 })) : nf,
+    delta: { cur, prev: prev == null ? null : (opts.avg ? prev / S.days : prev) }, spark: pts.map(p => p.value) });
+}
+
+
+/* ------------------------------------------------------------------ round 2 helpers: price, months, CSV, multi series chart, map */
+// price comes from app_settings.price_label ("R$ 14,90 por mês" -> 14.9); falls back to the default
+function price() {
+  const label = (D.settings || []).find(r => r.key === 'price_label')?.value;
+  const m = typeof label === 'string' ? label.match(/(\d+(?:[.,]\d{1,2})?)/) : null;
+  const n = m ? parseFloat(m[1].replace(',', '.')) : NaN;
+  return n > 0 ? n : PRICE;
+}
+const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const monthKey = d => dayKey(d).slice(0, 7);
+const monthLabel = k => MONTHS[Number(k.slice(5)) - 1] + '/' + k.slice(2, 4);
+const monthStart = k => new Date(k + '-01T00:00:00-03:00').getTime();
+function monthAfter(k) { let y = Number(k.slice(0, 4)), m = Number(k.slice(5)) + 1; if (m > 12) { m = 1; y++; } return y + '-' + two(m); }
+function lastMonths(n) {
+  let k = monthKey(Date.now());
+  const out = [k];
+  while (out.length < n) { let y = Number(k.slice(0, 4)), m = Number(k.slice(5)) - 1; if (m < 1) { m = 12; y--; } k = y + '-' + two(m); out.unshift(k); }
+  return out;
+}
+function dur(hours) {
+  hours = Number(hours) || 0;
+  if (hours && hours % 24 === 0) return plural(hours / 24, 'dia', 'dias');
+  return plural(hours, 'hora', 'horas');
+}
+
+// CSV built in the browser: semicolon separator and UTF-8 BOM so Excel opens it right
+function downloadCsv(name, header, rows) {
+  const esc = v => {
+    let t = v == null ? '' : String(v);
+    if (/^[=+\-@]/.test(t)) t = "'" + t;               // never let a cell start a formula
+    return '"' + t.replace(/"/g, '""') + '"';
+  };
+  const txt = '﻿' + [header, ...rows].map(r => r.map(esc).join(';')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' }));
+  const a = h('a', { href: url, download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast(plural(rows.length, 'linha exportada', 'linhas exportadas') + '.');
+}
+
+// tooltip body with one row per series: line key, name, value
+function tipRows(rows) {
+  const box = h('span', { class: 'trs' });
+  rows.forEach(r => box.append(h('span', { class: 'tr' }, r.color ? h('i', { style: 'background:' + r.color }) : null, r.name, h('b', null, r.value))));
+  return box;
+}
+
+// points: [{ label, values: [a, b] }], series: [{ name, color }]; grouped side by side or stacked, always one axis
+function multiChart(points, series, opts = {}) {
+  if (!points.length || points.every(p => p.values.every(v => !v))) return emptyChart(opts.emptyText);
+  const fmt = opts.fmt || nf;
+  const wrap = h('div');
+  wrap.append(h('div', { class: 'legend' }, series.map(sr => h('span', null, h('i', { style: 'background:' + sr.color }), sr.name))));
+  const el = mount(w => {
+    const H = opts.height || 200, mL = 36, mR = 8, mT = 14, mB = 24;
+    const iw = Math.max(40, w - mL - mR), ih = H - mT - mB, n = points.length, k = series.length;
+    const tops = points.map(p => opts.stacked ? p.values.reduce((a, v) => a + v, 0) : Math.max(...p.values));
+    const { top, ticks } = niceScale(Math.max(...tops));
+    const band = iw / n;
+    const yAt = v => mT + ih - (v / top) * ih;
+    const svg = s('svg', { viewBox: `0 0 ${w} ${H}`, role: 'img', 'aria-label': opts.aria || 'Gráfico' });
+    ticks.forEach(t => {
+      svg.append(s('line', { class: 'grid-l', x1: mL, x2: w - mR, y1: yAt(t), y2: yAt(t) }));
+      svg.append(s('text', { x: mL - 8, y: yAt(t) + 4, 'text-anchor': 'end' }, nf(t)));
+    });
+    const every = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(iw / 58))));
+    points.forEach((p, i) => { if ((n - 1 - i) % every === 0) svg.append(s('text', { x: mL + band * (i + .5), y: H - 6, 'text-anchor': 'middle' }, p.label)); });
+    const bar = (x, y, bw, y0, round) => {
+      const r = round ? Math.min(4, bw / 2, y0 - y) : 0;
+      return `M${x} ${y0} V${y + r} Q${x} ${y} ${x + r} ${y} H${x + bw - r} Q${x + bw} ${y} ${x + bw} ${y + r} V${y0} Z`;
+    };
+    const groups = points.map((p, i) => {
+      const g = s('g', { class: 'grp' });
+      const dly = stagger(i, n);
+      const cx = mL + band * (i + .5);
+      if (opts.stacked) {
+        const bw = Math.max(2, Math.min(24, band - 2));
+        let acc = 0;
+        const lastIdx = p.values.reduce((a, v, j) => v ? j : a, -1);
+        p.values.forEach((v, j) => {
+          if (!v) return;
+          const y0 = yAt(acc) - (acc ? 2 : 0), y = Math.min(yAt(acc + v), y0 - 1);   // 2px surface gap between segments
+          g.append(s('path', { class: 'gy', style: `--d:${dly}`, d: bar(cx - bw / 2, y, bw, y0, j === lastIdx), fill: series[j].color }));
+          acc += v;
+        });
+      } else {
+        const bw = Math.max(2, Math.min(20, (band - 4) / k - 2));
+        const total = k * bw + (k - 1) * 2;
+        p.values.forEach((v, j) => {
+          if (!v) return;
+          const y0 = yAt(0), y = Math.min(yAt(v), y0 - 2);
+          g.append(s('path', { class: 'gy', style: `--d:${dly}`, d: bar(cx - total / 2 + j * (bw + 2), y, bw, y0, true), fill: series[j].color }));
+        });
+      }
+      svg.append(g);
+      return g;
+    });
+    const hit = s('rect', { x: mL, y: 0, width: iw + mR, height: H, fill: 'transparent' });
+    let cur = -1;
+    const move = ev => {
+      const box = svg.getBoundingClientRect();
+      const i = Math.max(0, Math.min(n - 1, Math.floor(((ev.clientX - box.left) * (w / box.width) - mL) / band)));
+      if (i !== cur) { if (groups[cur]) groups[cur].classList.remove('on'); cur = i; groups[i].classList.add('on'); }
+      const rows = series.map((sr, j) => ({ color: sr.color, name: sr.name, value: fmt(points[i].values[j]) }));
+      if (opts.stacked) rows.push({ name: 'Total', value: fmt(tops[i]) });
+      showTip(ev.clientX, ev.clientY, points[i].tip || points[i].label, tipRows(rows));
+    };
+    const leave = () => { if (groups[cur]) groups[cur].classList.remove('on'); cur = -1; hideTip(); };
+    hit.addEventListener('pointermove', move); hit.addEventListener('pointerdown', move);
+    hit.addEventListener('pointerleave', lazyOff(leave)); hit.addEventListener('pointercancel', leave);
+    svg.append(hit);
+    return svg;
+  });
+  motion(el, opts.id, points.flatMap(p => p.values));
+  wrap.append(el);
+  return wrap;
+}
+
+// Brazil outline, fetched once from the same folder
+let MAP = null, MAP_ERR = false, MAP_P = null;
+function loadMap() {
+  if (MAP || MAP_P) return;
+  MAP_P = fetch('brasil.json').then(r => { if (!r.ok) throw new Error('map'); return r.json(); })
+    .then(j => { MAP = j; }).catch(() => { MAP_ERR = true; })
+    .finally(() => { if (S.view === 'geo' && !$('#shell').hidden) render(); });
+}
+// entries: [{ city, uf, lat, lon, value, rows }] -> bubbles with area proportional to the value
+function geoMap(entries, unit) {
+  if (MAP_ERR) return h('p', { class: 'none-line' }, 'O desenho do mapa (brasil.json) não carregou. Os rankings ao lado continuam valendo.');
+  if (!MAP) return h('div', { class: 'state' }, h('div', { class: 'spinner' }), h('p', null, 'Carregando o mapa'));
+  const pts = entries.map(e => Object.assign({ x: (e.lon - MAP.lon0) * MAP.k, y: (MAP.lat0 - e.lat) * MAP.k }, e))
+    .sort((a, b) => b.value - a.value);                // biggest first, so the small ones stay on top
+  const max = Math.max(1, ...pts.map(p => p.value));
+  const box = h('div', { class: 'map' });
+  if (pts.length) motion(box, 'map-' + unit, pts.map(p => p.value));
+  box.append(mount(w => {
+    const px = MAP.w / w;                              // viewBox units per screen pixel
+    const rMax = Math.max(16, Math.min(34, w * .06)) * px, rMin = 5 * px;
+    const svg = s('svg', { viewBox: `0 0 ${MAP.w} ${MAP.h}`, role: 'img', 'aria-label': 'Mapa do Brasil com ' + unit + ' por cidade' });
+    svg.append(s('path', { class: 'land', d: MAP.outline }));
+    pts.forEach(p => {
+      const r = Math.max(rMin, Math.sqrt(p.value / max) * rMax);
+      const c = s('circle', { class: 'bub' + (p.dim ? ' dim' : ''), style: `--d:${stagger(pts.indexOf(p), pts.length)}`, cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: r.toFixed(1) });
+      const target = s('circle', { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: Math.max(r, 14 * px).toFixed(1), fill: 'transparent' });
+      const on = ev => { c.classList.add('on'); showTip(ev.clientX, ev.clientY, p.city + (p.uf ? '/' + p.uf : ''), tipRows(p.rows)); };
+      const off = () => { c.classList.remove('on'); hideTip(); };
+      target.addEventListener('pointermove', on); target.addEventListener('pointerdown', on);
+      target.addEventListener('pointerleave', lazyOff(off)); target.addEventListener('pointercancel', off);
+      svg.append(c, target);
+    });
+    return svg;
+  }));
+  if (!pts.length) box.append(h('p', { class: 'none-line', style: 'text-align:center' }, 'Nenhuma cidade com ' + unit + ' nesse período.'));
+  return box;
+}
+function pager(page, pages, goTo) {
+  return h('div', { class: 'pager' },
+    h('button', { class: 'pill', type: 'button', disabled: page <= 0, onclick: () => goTo(page - 1) }, 'Anterior'),
+    h('span', { class: 'num' }, 'página ' + nf(page + 1) + ' de ' + nf(Math.max(1, pages))),
+    h('button', { class: 'pill', type: 'button', disabled: page >= pages - 1, onclick: () => goTo(page + 1) }, 'Próxima'));
+}
+function personCell(name, email, userId) {
+  const known = userId && (D.users || []).some(u => u.id === userId);
+  const inner = h('div', null, h('b', null, name || email || 'conta removida'), name && email ? h('span', null, email) : null);
+  return known
+    ? h('button', { class: 'ucell linkcell', type: 'button', onclick: ev => { ev.stopPropagation(); openUser(userId); } }, inner)
+    : h('div', { class: 'ucell' }, inner);
+}
+
+/* ------------------------------------------------------------------ revenue BI, all derived on the client from admin_users + license_log */
+function bi() {
+  const P = price(), now = Date.now();
+  const users = D.users || [], byId = new Map(users.map(u => [u.id, u]));
+  // a payment is a log row written by "Registrar pagamento"
+  const pays = (D.log || []).filter(r => r.action === 'pagamento mensal' && r.user_id).map(r => {
+    const at = new Date(r.created_at).getTime();
+    return { user: r.user_id, email: r.user_email, admin: r.admin_email, at, exp: r.new_expires ? new Date(r.new_expires).getTime() : at + 30 * DAY };
+  }).sort((a, b) => a.at - b.at);
+  const byUser = new Map();
+  pays.forEach(p => { if (!byUser.has(p.user)) byUser.set(p.user, []); byUser.get(p.user).push(p); });
+
+  const months = lastMonths(12);
+  const per = new Map(months.map(k => [k, { pays: 0, news: 0, renew: 0, cancel: 0, active: 0, payers: new Set() }]));
+  const bump = (k, f) => { const m = per.get(k); if (m) m[f]++; };
+  byUser.forEach((list, uid) => list.forEach((p, i) => {
+    const k = monthKey(p.at);
+    bump(k, 'pays'); bump(k, i ? 'renew' : 'news');
+    if (per.has(k)) per.get(k).payers.add(uid);
+    // cancellation: the paid period ended more than 3 days ago and nothing was paid before that cut
+    const next = list[i + 1], cut = p.exp + 3 * DAY;
+    if (cut >= now || (next && next.at <= cut)) return;
+    const u = byId.get(uid);
+    if (!next && u && !lic(u).expired) return;           // extended some other way (courtesy days, lifetime): still a customer
+    bump(monthKey(cut), 'cancel');
+  }));
+  // monthly accounts that lapsed without any payment in the log (set by hand before payments were recorded)
+  users.forEach(u => {
+    if (u.plan !== 'mensal' || byUser.has(u.id)) return;
+    const l = lic(u);
+    if (l.expired && l.exp && l.exp + 3 * DAY < now) bump(monthKey(l.exp + 3 * DAY), 'cancel');
+  });
+  months.forEach(k => {
+    const a = monthStart(k), b = monthStart(monthAfter(k));
+    let n = 0;
+    byUser.forEach(list => { if (list.some(p => p.at < b && p.exp >= a)) n++; });
+    per.get(k).active = n;
+  });
+
+  const c = summary();
+  const cur = months[11], prev = months[10];
+  const M = per.get(cur), M0 = per.get(prev);
+  let base = 0;
+  byUser.forEach(list => { if (list.some(p => p.at < monthStart(cur) && p.exp >= monthStart(cur))) base++; });
+  if (!base) base = c.paid + M.cancel - M.news;
+  const churn = base > 0 ? 100 * M.cancel / base : null;
+  const revenue = M.pays * P, revenue0 = M0.pays * P;
+  const ticket = M.payers.size ? revenue / M.payers.size : P;
+  const waits = [];
+  byUser.forEach((list, uid) => { const u = byId.get(uid); if (u) waits.push(Math.max(0, (list[0].at - new Date(u.created_at).getTime()) / DAY)); });
+  return {
+    P, pays, byUser, months, per, c, M, M0, churn, revenue, revenue0, ticket,
+    mrr: c.paid * P,
+    ltv: churn ? ticket / (churn / 100) : null,
+    delta: revenue0 > 0 ? 100 * (revenue - revenue0) / revenue0 : null,
+    wait: waits.length ? waits.reduce((a, v) => a + v, 0) / waits.length : null,
+  };
+}
+
+function licensesBI(root) {
+  const g = guard(['users', 'log']);
+  if (g) { root.append(h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('h2', null, 'Receita')), g)); return; }
+  const B = bi(), now = Date.now();
+  const money0 = v => 'R$ ' + nf(Math.round(v));
+  const oneDec = v => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+
+  root.append(h('div', { class: 'kpis' },
+    kpi('MRR', B.mrr, plural(B.c.paid, 'assinante ativo', 'assinantes ativos') + ' x ' + brl(B.P), { hero: true, est: true, fmtNum: brl, delta: { cur: B.mrr, prev: B.M0.active ? B.M0.active * B.P : null, label: 'vs mês anterior' }, spark: B.months.slice(-6).map((k, i) => (i === 5 ? Math.max(B.per.get(k).active, B.c.paid) : B.per.get(k).active) * B.P) }),
+    kpi('ARR', B.mrr * 12, 'MRR x 12', { est: true, fmtNum: brl }),
+    kpi('Assinantes ativos', Number(B.c.paid) || 0, null, { dot: 'green' }),
+    kpi('Novos assinantes no mês', B.M.news, 'primeiro pagamento em ' + monthLabel(B.months[11]), { delta: { cur: B.M.news, prev: B.M0.news, label: 'vs mês anterior' }, spark: B.months.slice(-6).map(k => B.per.get(k).news) }),
+    kpi('Renovações no mês', B.M.renew, null, { delta: { cur: B.M.renew, prev: B.M0.renew, label: 'vs mês anterior' } }),
+    kpi('Cancelamentos no mês', B.M.cancel, 'venceu há mais de 3 dias sem pagar', { dot: 'red', delta: { cur: B.M.cancel, prev: B.M0.cancel, goodUp: false, label: 'vs mês anterior' } }),
+    kpi('Churn do mês', B.churn == null ? 'sem dados' : oneDec(B.churn) + '%', null, { est: true }),
+    kpi('Ticket médio', B.ticket, null, { est: true, fmtNum: brl }),
+    kpi('LTV', B.ltv == null ? 'sem dados' : brl(B.ltv), B.ltv == null ? 'precisa de churn maior que zero' : 'ticket dividido pelo churn mensal', { est: true }),
+    kpi('Recebido no mês', B.revenue, 'mês anterior: ' + brl(B.revenue0), { wide: true, est: true, fmtNum: brl, delta: { cur: B.revenue, prev: B.revenue0, label: 'vs mês anterior' }, spark: B.months.slice(-6).map(k => B.per.get(k).pays * B.P) }),
+    kpi('Conversão teste para pago', pct(B.c.conv), B.c.conv == null ? 'precisa de testes encerrados' : nf(B.c.paid) + ' de ' + nf(B.c.paid + B.c.expiredTrial), { est: true }),
+    kpi('Tempo até virar pagante', B.wait == null ? 'sem dados' : oneDec(B.wait) + ' dias', 'da criação da conta ao primeiro pagamento')));
+
+  // trim leading empty months, keep at least six on screen
+  const firstUsed = B.months.findIndex(k => { const m = B.per.get(k); return m.pays || m.cancel || m.active; });
+  const shown = B.months.slice(Math.max(0, Math.min(firstUsed < 0 ? 6 : firstUsed, 6)));
+  const est = head => head.querySelector('h2').after(h('span', { class: 'tag' }, 'estimado'));
+
+  const g1 = h('div', { class: 'grid g2' });
+  g1.append(card('Evolução do MRR', 'contas com pagamento válido em cada mês x preço', [], (c, head) => {
+    est(head);
+    const pts = shown.map((k, i) => ({ label: monthLabel(k), value: Math.round((i === shown.length - 1 ? Math.max(B.per.get(k).active, B.c.paid) : B.per.get(k).active) * B.P * 100) / 100 }));
+    c.append(seriesChart('line', pts, { id: 'bi-mrr', fmt: brl, fmtShort: money0, aria: 'Evolução do MRR estimado', emptyText: 'Ainda sem pagamentos registrados' }));
+  }));
+  g1.append(card('Receita recebida por mês', 'toque em um mês para filtrar os pagamentos', [], (c, head) => {
+    est(head);
+    c.append(seriesChart('bar', shown.map(k => ({ key: k, label: monthLabel(k), value: Math.round(B.per.get(k).pays * B.P * 100) / 100 })), { id: 'bi-rev', picked: S.payMonth ? shown.indexOf(S.payMonth) : null, onPick: (i, pt) => { S.payMonth = S.payMonth === pt.key ? null : pt.key; S.payShown = 15; render(); }, fmt: brl, fmtShort: money0, aria: 'Receita recebida por mês', emptyText: 'Ainda sem pagamentos registrados' }));
+  }));
+  root.append(g1);
+
+  const g2 = h('div', { class: 'grid g2' });
+  g2.append(card('Novos e cancelados por mês', 'assinantes', [], c => {
+    c.append(multiChart(shown.map(k => ({ label: monthLabel(k), values: [B.per.get(k).news, B.per.get(k).cancel] })), [{ name: 'Novos', color: '#4c8dff' }, { name: 'Cancelados', color: '#56627a' }], { id: 'bi-nc', aria: 'Novos e cancelados por mês', emptyText: 'Ainda sem pagamentos registrados' }));
+  }));
+  g2.append(card('Contas por estado da licença', 'hoje', [], c => {
+    const n = { trial: 0, paid: 0, expired: 0, life: 0, blocked: 0 };
+    D.users.forEach(u => { const k = lic(u).key; if (k === 'none') n.expired++; else if (k in n) n[k]++; });
+    c.append(donut([{ label: 'Em teste', value: n.trial }, { label: 'Assinantes', value: n.paid }, { label: 'Vencidos', value: n.expired }, { label: 'Vitalícios', value: n.life }, { label: 'Bloqueados', value: n.blocked }], { id: 'bi-lic', unit: 'contas', centerLabel: 'contas', emptyText: 'Ainda não há contas' }));
+  }));
+  root.append(g2);
+
+  root.append(card('Vencimentos nos próximos 30 dias', 'quantas licenças vencem em cada dia', [], c => {
+    const keys = Array.from({ length: 30 }, (_, i) => dayKey(now + i * DAY));
+    const idx = new Map(keys.map((k, i) => [k, i]));
+    const pts = keys.map(k => ({ label: dayLabel(k), values: [0, 0] }));
+    D.users.forEach(u => { const l = lic(u); if (l.blocked || l.lifetime || l.expired) return; const i = idx.get(dayKey(l.exp)); if (i == null) return; if (u.plan === 'mensal') pts[i].values[0]++; else if (u.plan === 'teste') pts[i].values[1]++; });
+    c.append(multiChart(pts, [{ name: 'Mensal', color: '#4c8dff' }, { name: 'Teste', color: '#9dbcff' }], { id: 'bi-fc', stacked: true, aria: 'Previsão de vencimentos por dia', emptyText: 'Nenhuma licença vence nos próximos 30 dias' }));
+  }));
+
+  const g3 = h('div', { class: 'grid g2' });
+  g3.append(card('Conversão por semana de cadastro', 'das contas criadas na semana, quantas viraram pagantes', [], c => {
+    const d0 = new Date(); d0.setHours(0, 0, 0, 0); d0.setDate(d0.getDate() - ((d0.getDay() + 6) % 7));   // this week's Monday
+    const weeks = Array.from({ length: 12 }, (_, i) => d0.getTime() - (11 - i) * 7 * DAY);
+    const pts = weeks.map(w0 => {
+      const made = D.users.filter(u => { const t = new Date(u.created_at).getTime(); return t >= w0 && t < w0 + 7 * DAY; });
+      const conv = made.filter(u => B.byUser.has(u.id) || u.plan === 'mensal').length;
+      return { label: dm(w0), made: made.length, value: made.length ? Math.round(100 * conv / made.length) : 0, tip: 'semana de ' + dm(w0) + ': ' + nf(conv) + ' de ' + plural(made.length, 'conta', 'contas') };
+    });
+    if (pts.every(p => !p.made)) { c.append(emptyChart('Nenhum cadastro nas últimas 12 semanas')); return; }
+    c.append(seriesChart('bar', pts, { id: 'bi-coh', fmt: v => nf(v) + '%', fmtShort: v => nf(v) + '%', aria: 'Conversão por semana de cadastro', emptyText: 'Nenhuma conta dessas semanas virou pagante ainda' }));
+  }));
+  g3.append(card('Origem dos pagantes', 'de onde veio quem paga ou já pagou', [], c => {
+    const m = new Map();
+    D.users.forEach(u => { if (!(B.byUser.has(u.id) || lic(u).paid)) return; const k = u.source || 'não identificada'; m.set(k, (m.get(k) || 0) + 1); });
+    c.append(hbars([...m].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 10), { id: 'bi-src', unit: 'pagantes', emptyText: 'Ainda sem pagantes' }));
+  }));
+  root.append(g3);
+
+  // payments table with its own search, redrawn in place so the input keeps focus
+  const payCard = h('section', { class: 'card' });
+  const nameOf = p => byName.get(p.user)?.name || '';
+  const byName = new Map(D.users.map(u => [u.id, u]));
+  const drawPays = () => {
+    const q = S.payq.trim().toLowerCase();
+    const rows = B.pays.slice().reverse().filter(p => !S.payMonth || monthKey(p.at) === S.payMonth).filter(p => !q || (p.email || '').toLowerCase().includes(q) || nameOf(p).toLowerCase().includes(q) || (p.admin || '').toLowerCase().includes(q));
+    const head = h('div', { class: 'card-head' }, h('h2', null, 'Pagamentos registrados'), h('span', { class: 'hint' }, plural(rows.length, 'pagamento', 'pagamentos') + ', ' + brl(rows.length * B.P) + ' estimado'),
+      h('button', { class: 'pill', type: 'button', style: 'margin-left:auto', disabled: !rows.length, onclick: () => downloadCsv('kingpad-pagamentos-' + dayKey(now) + '.csv', ['Data', 'Hora', 'Nome', 'E-mail', 'Administrador', 'Validade nova', 'Valor estimado'],
+        rows.map(p => [dmy(p.at), dthm(p.at).slice(6), nameOf(p), p.email, p.admin, dmy(p.exp), B.P.toLocaleString('pt-BR', { minimumFractionDigits: 2 })])) }, 'Exportar CSV'));
+    const old = payCard.querySelector('.search');
+    const search = old || h('div', { class: 'search', style: 'margin-bottom:12px' }, icon('M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z|M20 20l-4-4'),
+      h('input', { type: 'search', placeholder: 'Buscar por pessoa ou administrador', value: S.payq, 'aria-label': 'Buscar pagamentos', autocomplete: 'off', oninput: ev => { S.payq = ev.target.value; S.payShown = 15; drawPays(); } }));
+    let bodyEl;
+    if (!rows.length) bodyEl = h('p', { class: 'none-line' }, B.pays.length ? 'Nenhum pagamento com essa busca.' : 'Nenhum pagamento registrado ainda. Use "Registrar pagamento" na ficha ou nas listas de vencimento.');
+    else {
+      const body = h('tbody');
+      rows.slice(0, S.payShown).forEach(p => body.append(h('tr', null,
+        h('td', { class: 'lead' }, personCell(nameOf(p), p.email, p.user)),
+        h('td', { 'data-l': 'Data', class: 'mut num' }, dmy(p.at) + ' ' + dthm(p.at).slice(6)),
+        h('td', { 'data-l': 'Administrador', class: 'mut' }, p.admin || 'não informado'),
+        h('td', { 'data-l': 'Validade nova', class: 'num' }, fmtExp(p.exp)))));
+      bodyEl = h('div', null, h('div', { class: 'tablewrap' }, h('table', { class: 'rt' }, h('thead', null, h('tr', null, ...['Pessoa', 'Data', 'Administrador', 'Validade nova'].map(t => h('th', { scope: 'col' }, t)))), body)),
+        rows.length > S.payShown ? h('div', { class: 'more' }, h('button', { class: 'pill', type: 'button', onclick: () => { S.payShown += 30; drawPays(); } }, 'Mostrar mais')) : null);
+    }
+    if (old) { payCard.firstChild.replaceWith(head); payCard.lastChild.replaceWith(bodyEl); }
+    else payCard.replaceChildren(head, search, bodyEl);
+    payCard.querySelectorAll('.fchip').forEach(x => x.remove());
+    if (S.payMonth) { const fc = filterChip(monthLabel(S.payMonth), () => { S.payMonth = null; render(); }); fc.style.marginBottom = '12px'; payCard.querySelector('.search').before(fc); }
+  };
+  drawPays();
+  root.append(payCard);
+  root.append(h('h2', { class: 'sec-title' }, 'Vencimentos e alterações'));
+}
+
+/* ------------------------------------------------------------------ automations: rules, editor, engine, one-off message */
+const TRIGGERS = {
+  signup:         { label: 'Criou a conta', desc: 'Para quem acabou de criar a conta.', time: 'Horas depois do cadastro', quick: [[0, 'na hora'], [1, '1 hora'], [24, '24 horas']], phrase: n => n ? dur(n) + ' depois de criar a conta' : 'Assim que cria a conta' },
+  never_played:   { label: 'Criou a conta e ainda não tocou', desc: 'Para quem se cadastrou e não apertou nenhum tom.', time: 'Horas depois do cadastro, sem tocar', quick: [[24, '24 horas'], [72, '3 dias']], phrase: n => dur(n) + ' depois do cadastro, se ainda não tocou' },
+  trial_ending:   { label: 'Teste acabando', desc: 'Para quem está no teste e perto de vencer.', time: 'Faltando até quantas horas para vencer', quick: [[24, '24 horas'], [72, '72 horas']], phrase: n => 'Quando faltam até ' + dur(n) + ' para o teste vencer' },
+  expired:        { label: 'Licença venceu', desc: 'Para quem deixou a licença vencer.', time: 'Horas depois de vencer', quick: [[0, 'na hora'], [72, '3 dias']], phrase: n => n ? dur(n) + ' depois de a licença vencer' : 'Assim que a licença vence' },
+  inactive:       { label: 'Sumiu do app', desc: 'Para quem tem licença e parou de abrir o app.', time: 'Horas sem usar o app', quick: [[168, '7 dias'], [336, '14 dias']], phrase: n => 'Depois de ' + dur(Math.max(24, n)) + ' sem usar o app' },
+  payment:        { label: 'Pagamento registrado', desc: 'Logo depois que você registra um pagamento.', time: null, phrase: () => 'Quando um pagamento é registrado' },
+  new_city_login: { label: 'Login em cidade nova', desc: 'Quando a conta entra de uma cidade onde nunca esteve.', time: null, phrase: () => 'Quando a conta entra de uma cidade nova' },
+};
+TRIGGERS.custom = { label: 'Personalizado (monte a sua regra)', desc: 'Você escolhe as condições. A regra dispara para quem se encaixar.', time: null, phrase: (n, a) => ruleSentence(a || {}) };
+// [value, label, type, options or hint]
+const FIELDS = [
+  ['dias_desde_cadastro', 'Dias desde o cadastro', 'num'], ['dias_para_vencer', 'Dias para a licença vencer', 'num', 'Negativo quer dizer que já venceu.'],
+  ['dias_vencido', 'Dias com a licença vencida', 'num'], ['plano', 'Plano', 'list', ['teste', 'mensal', 'admin']], ['licenca_ativa', 'Licença ativa', 'bool'],
+  ['forma_login', 'Forma de login', 'list', ['google', 'email']], ['minutos_tocados', 'Minutos tocados', 'num'], ['vezes_tocou', 'Vezes que ligou um tom', 'num'],
+  ['dias_sem_usar', 'Dias sem usar o app', 'num', '9999 quer dizer que nunca usou.'], ['instalou', 'Instalou na tela inicial', 'bool'],
+  ['aparelho', 'Aparelho', 'list', ['ios', 'android', 'desktop']], ['origem', 'Origem do cadastro (UTM)', 'text'], ['cidade', 'Cidade', 'text'], ['estado', 'Estado (UF)', 'text'],
+  ['pais', 'País', 'text'], ['total_logins', 'Total de logins', 'num'], ['pagamentos', 'Pagamentos registrados', 'num'],
+  ['dias_desde_pagamento', 'Dias desde o último pagamento', 'num', '9999 quer dizer que nunca pagou.'], ['email', 'E-mail', 'text'],
+];
+const FIELD = Object.fromEntries(FIELDS.map(f => [f[0], { label: f[1], type: f[2], extra: f[3] }]));
+const OPS = {
+  num: [['gt', 'maior que'], ['gte', 'maior ou igual a'], ['lt', 'menor que'], ['lte', 'menor ou igual a'], ['eq', 'igual a'], ['neq', 'diferente de']],
+  text: [['eq', 'é'], ['neq', 'não é'], ['contains', 'contém'], ['empty', 'está vazio'], ['not_empty', 'está preenchido']],
+  list: [['eq', 'é'], ['neq', 'não é']], bool: [['eq', 'é'], ['neq', 'não é']],
+};
+const NO_VALUE = ['empty', 'not_empty'];
+const RULE_MODELS = [
+  ['Teste acabando e usou bastante', [['plano', 'eq', 'teste'], ['dias_para_vencer', 'lte', '2'], ['minutos_tocados', 'gt', '30']]],
+  ['Assinante sumido', [['plano', 'eq', 'mensal'], ['licenca_ativa', 'eq', 'sim'], ['dias_sem_usar', 'gte', '14']]],
+  ['Não instalou ainda', [['instalou', 'eq', 'nao'], ['dias_desde_cadastro', 'gte', '2'], ['licenca_ativa', 'eq', 'sim']]],
+  ['Venceu há uma semana', [['dias_vencido', 'gte', '7'], ['plano', 'neq', 'admin']]],
+  ['Veio do Instagram e não tocou', [['origem', 'contains', 'instagram'], ['vezes_tocou', 'eq', '0']]],
+];
+const condOk = c => FIELD[c.field] && (NO_VALUE.includes(c.op) || (FIELD[c.field].type === 'num' ? String(c.value).trim() !== '' && isFinite(Number(c.value)) : String(c.value ?? '').trim() !== ''));
+const showVal = v => v === 'nao' ? 'não' : String(v);
+function condText(c) {
+  const f = FIELD[c.field]; if (!f) return '';
+  const op = (OPS[f.type].find(o => o[0] === c.op) || [])[1] || c.op;
+  const label = f.label.charAt(0).toLowerCase() + f.label.slice(1);
+  return label + (f.type === 'num' ? ' é ' : ' ') + op + (NO_VALUE.includes(c.op) ? '' : ' ' + showVal(c.value));
+}
+function ruleSentence(a) {
+  const conds = (Array.isArray(a.conditions) ? a.conditions : []).filter(condOk);
+  if (!conds.length) return 'Regra personalizada ainda sem condições.';
+  const chan = (CHANNELS[a.channel] || 'dentro do app').toLowerCase();
+  return 'Quando ' + conds.map(condText).join(a.match === 'any' ? ' OU ' : ' E ') + ', enviar ' + (chan === 'e-mail' ? 'por e-mail' : chan === 'whatsapp' ? 'por WhatsApp' : chan) + ', '
+    + (a.repeat_days ? 'podendo repetir a cada ' + plural(Number(a.repeat_days), 'dia', 'dias') : 'uma vez só por pessoa') + '.';
+}
+// demo only: a rough local copy of the server matcher, so the builder can be tested without a database
+function demoFacts(u) {
+  const l = lic(u), now = Date.now();
+  const left = l.exp ? Math.ceil((l.exp - now) / DAY) : -9999;
+  return { dias_desde_cadastro: Math.floor((now - new Date(u.created_at)) / DAY), dias_para_vencer: left, dias_vencido: Math.max(0, -left), plano: u.plan, licenca_ativa: l.expired ? 'nao' : 'sim', forma_login: u.provider,
+    minutos_tocados: Number(u.minutes) || 0, vezes_tocou: Number(u.plays) || 0, dias_sem_usar: u.last_seen ? Math.floor((now - new Date(u.last_seen)) / DAY) : 9999, instalou: u.installed ? 'sim' : 'nao',
+    aparelho: /iphone|ipad/i.test(u.device || '') ? 'ios' : /android/i.test(u.device || '') ? 'android' : 'desktop', origem: u.source || '', cidade: '', estado: '', pais: '', total_logins: 0, pagamentos: 0, dias_desde_pagamento: 9999, email: u.email };
+}
+function demoPreview(conds, match) {
+  const test = (facts, c) => { const v = facts[c.field], t = FIELD[c.field].type; if (c.op === 'empty') return !v; if (c.op === 'not_empty') return !!v;
+    if (t === 'num') { const a = Number(v), b = Number(c.value); return { gt: a > b, gte: a >= b, lt: a < b, lte: a <= b, eq: a === b, neq: a !== b }[c.op]; }
+    const a = String(v ?? '').toLowerCase(), b = String(c.value).toLowerCase(); return c.op === 'contains' ? a.includes(b) : c.op === 'neq' ? a !== b : a === b; };
+  const all = (D.users || []).filter(u => !u.blocked).map(u => ({ email: u.email, name: u.name, facts: demoFacts(u) }));
+  const hit = all.filter(x => match === 'any' ? conds.some(c => test(x.facts, c)) : conds.every(c => test(x.facts, c)));
+  return { total: (D.users || []).length, count: hit.length, sample: hit.slice(0, 8) };
+}
+const CHANNELS = { in_app: 'Dentro do app', email: 'E-mail', whatsapp: 'WhatsApp' };
+const MSG_PROVIDER = 'Precisa conectar um provedor, a regra fica na fila até lá.';
+const okUrl = v => !v || /^(https:\/\/|\.{0,2}\/|#)/i.test(v);
+function fillVars(text) {
+  const label = (D.settings || []).find(r => r.key === 'price_label')?.value;
+  return String(text || '').replace(/\{nome\}/g, 'Ana').replace(/\{dias\}/g, '3').replace(/\{cidade\}/g, 'Belo Horizonte').replace(/\{preco\}/g, typeof label === 'string' && label ? label : 'R$ 14,90 por mês');
+}
+function msgPreview() {
+  const t = h('b'), b = h('p'), btn = h('span', { class: 'msgbtn' });
+  const box = h('div', { class: 'msgprev' }, h('div', { class: 'msgtxt' }, t, b), btn);
+  box.paint = (title, body, label) => {
+    t.textContent = fillVars(title) || 'Título da mensagem'; t.classList.toggle('ph', !title);
+    b.textContent = fillVars(body); b.hidden = !body;
+    btn.textContent = label || ''; btn.hidden = !label;
+  };
+  return box;
+}
+async function dbWrite(promise, okMsg, reload, file) {
+  if (S.demo) { toast('Modo demonstração: nada foi alterado.'); return false; }
+  try {
+    const { error } = await promise();
+    if (error) throw error;
+  } catch (err) { toast(explain(err, file || 'admin2.sql'), true); return false; }
+  if (okMsg) toast(okMsg);
+  if (reload) await load(reload);
+  return true;
+}
+
+function openAuto(rule) {
+  const dlg = $('#autoDlg');
+  const isNew = !rule || !rule.id;
+  const r = Object.assign({ name: '', trigger: 'signup', offset_hours: 0, channel: 'in_app', title: '', body: '', cta_label: '', cta_url: '', active: false, conditions: [], match: 'all', repeat_days: null }, rule || {});
+  // custom rule builder state
+  let conds = (Array.isArray(r.conditions) ? r.conditions : []).map(c => ({ field: c.field, op: c.op, value: c.value == null ? '' : String(c.value) })).filter(c => FIELD[c.field]);
+  let match = r.match === 'any' ? 'any' : 'all';
+  let repeat = r.repeat_days ? Math.max(1, Number(r.repeat_days)) : null;
+  let prevTimer = null, prevSeq = 0;
+  const matchSeg = h('div', { class: 'seg wrapseg', role: 'group', 'aria-label': 'Disparar quando' });
+  const condList = h('div', { class: 'conds' });
+  const models = h('div', { class: 'chips', style: 'margin:0;padding:0' }, RULE_MODELS.map(([label, list]) => h('button', { class: 'pill', type: 'button', onclick: () => { conds = list.map(([field, op, value]) => ({ field, op, value })); match = 'all'; paintBuilder(); } }, label)));
+  const repeatSeg = h('div', { class: 'seg wrapseg', role: 'group', 'aria-label': 'Repetição' });
+  const repeatIn = h('input', { class: 'input', type: 'number', min: 1, max: 365, inputmode: 'numeric', 'aria-label': 'Repetir a cada quantos dias', style: 'max-width:120px' });
+  const repeatRow = h('div', { class: 'toolbar' }, 'Pode repetir a cada', repeatIn, 'dias');
+  const liveBox = h('div', { class: 'livebox' });
+  const sentence = h('p', { class: 'sentence' });
+  const builder = h('div', { class: 'builder', hidden: true },
+    h('div', { class: 'setrow' }, h('label', null, 'Modelos prontos'), models, h('span', { class: 'help' }, 'Um modelo preenche as condições e você ajusta.')),
+    h('div', { class: 'setrow' }, h('label', null, 'Disparar quando'), matchSeg, condList, h('button', { class: 'pill', type: 'button', style: 'justify-self:start', onclick: () => { conds.push({ field: 'dias_desde_cadastro', op: 'gte', value: '1' }); paintBuilder(); } }, 'Adicionar condição')),
+    h('div', { class: 'setrow' }, h('label', null, 'Repetição'), repeatSeg, repeatRow),
+    h('div', { class: 'setrow' }, h('label', null, 'Quem a regra pega agora'), liveBox));
+  repeatIn.addEventListener('input', () => { repeat = Math.max(1, Math.min(365, parseInt(repeatIn.value, 10) || 1)); paintSentence(); });
+  const current = () => ({ conditions: conds.filter(condOk).map(c => NO_VALUE.includes(c.op) ? { field: c.field, op: c.op, value: '' } : { field: c.field, op: c.op, value: String(c.value).trim() }), match, repeat_days: repeat, channel: chan.value });
+  function paintSentence() { sentence.textContent = ruleSentence(current()); sentence.hidden = trig.value !== 'custom'; }
+  function paintBuilder() {
+    matchSeg.replaceChildren(...[['all', 'todas as condições forem verdadeiras'], ['any', 'qualquer uma for verdadeira']].map(([id, l]) => h('button', { type: 'button', 'aria-pressed': String(match === id), onclick: () => { match = id; paintBuilder(); } }, l)));
+    repeatSeg.replaceChildren(...[[null, 'Enviar uma vez só por pessoa'], [1, 'Pode repetir']].map(([id, l]) => h('button', { type: 'button', 'aria-pressed': String(!!repeat === !!id), onclick: () => { repeat = id ? (repeat || 7) : null; paintBuilder(); } }, l)));
+    repeatRow.hidden = !repeat; if (repeat) repeatIn.value = repeat;
+    condList.replaceChildren(...conds.map((c, i) => {
+      const f = FIELD[c.field];
+      const fieldSel = h('select', { class: 'input', 'aria-label': 'Campo' }, FIELDS.map(x => h('option', { value: x[0] }, x[1])));
+      fieldSel.value = c.field;
+      fieldSel.addEventListener('change', () => {                 // new field: reset comparison and value to the new type
+        const nf2 = FIELD[fieldSel.value];
+        c.field = fieldSel.value; c.op = nf2.type === 'num' ? 'gte' : 'eq';
+        c.value = nf2.type === 'num' ? '0' : nf2.type === 'bool' ? 'sim' : nf2.type === 'list' ? nf2.extra[0] : '';
+        paintBuilder();
+      });
+      const opSel = h('select', { class: 'input', 'aria-label': 'Comparação' }, OPS[f.type].map(o => h('option', { value: o[0] }, o[1])));
+      if (!OPS[f.type].some(o => o[0] === c.op)) c.op = OPS[f.type][0][0];
+      opSel.value = c.op;
+      opSel.addEventListener('change', () => { c.op = opSel.value; paintBuilder(); });
+      let valEl;
+      if (NO_VALUE.includes(c.op)) valEl = h('span', { class: 'novalue' });
+      else if (f.type === 'list' || f.type === 'bool') {
+        const opts = f.type === 'bool' ? ['sim', 'nao'] : f.extra;
+        if (!opts.includes(c.value)) c.value = opts[0];
+        valEl = h('select', { class: 'input', 'aria-label': 'Valor' }, opts.map(o => h('option', { value: o }, showVal(o))));
+        valEl.value = c.value;
+        valEl.addEventListener('change', () => { c.value = valEl.value; changed(); });
+      } else {
+        valEl = h('input', { class: 'input', 'aria-label': 'Valor', type: f.type === 'num' ? 'number' : 'text', inputmode: f.type === 'num' ? 'numeric' : null, value: c.value, placeholder: f.type === 'num' ? '0' : 'texto' });
+        valEl.addEventListener('input', () => { c.value = valEl.value; changed(); });
+      }
+      const rm = h('button', { class: 'pill rm', type: 'button', 'aria-label': 'Remover condição', disabled: conds.length <= 1, onclick: () => { conds.splice(i, 1); paintBuilder(); } }, icon('M6 6l12 12|M18 6L6 18'));
+      return h('div', { class: 'cond' }, fieldSel, opSel, valEl, rm, typeof f.extra === 'string' ? h('span', { class: 'help condhelp' }, f.extra) : null);
+    }));
+    changed();
+  }
+  function changed() { paintSentence(); clearTimeout(prevTimer); prevTimer = setTimeout(livePreview, 500); }
+  async function livePreview() {
+    if (trig.value !== 'custom' || !dlg.open) return;
+    const cur = current(), seq = ++prevSeq;
+    if (!cur.conditions.length) { liveBox.replaceChildren(h('p', { class: 'none-line' }, 'Preencha pelo menos uma condição para ver quem se encaixa.')); return; }
+    liveBox.classList.add('busy');
+    if (!liveBox.firstChild) liveBox.replaceChildren(h('div', { class: 'state' }, h('div', { class: 'spinner' }), h('p', null, 'Conferindo')));
+    let data;
+    try {
+      if (S.demo) data = demoPreview(cur.conditions, cur.match);
+      else { const res = await sb.rpc('admin_automation_preview', { p_conditions: cur.conditions, p_match: cur.match }); if (res.error) throw res.error; data = res.data; }
+    } catch (err) {
+      if (seq !== prevSeq) return;
+      liveBox.classList.remove('busy');
+      liveBox.replaceChildren(h('div', { class: 'state err' }, h('p', null, explain(err, 'admin3.sql')), h('button', { class: 'pill', type: 'button', onclick: livePreview }, 'Tentar de novo')));
+      return;
+    }
+    if (seq !== prevSeq) return;
+    liveBox.classList.remove('busy');
+    const used = [...new Set(cur.conditions.map(c => c.field))];
+    const headline = h('p', { class: 'livehead num' }, 'Esta regra pega ', h('b', null, nf(data.count)), ' de ', h('b', null, nf(data.total)), ' contas agora.');
+    if (!Number(data.count)) { liveBox.replaceChildren(headline, h('p', { class: 'none-line' }, 'Ninguém se encaixa agora, a regra dispara quando alguém passar a se encaixar.')); return; }
+    liveBox.replaceChildren(headline, ...(data.sample || []).map(x => h('div', { class: 'liverow' },
+      h('div', { class: 'who2' }, h('b', null, x.name || x.email), x.name ? h('span', null, x.email) : null),
+      h('div', { class: 'facts' }, used.map(k => h('span', { class: 'fact num' }, FIELD[k].label + ': ', h('b', null, showVal((x.facts || {})[k] === '' || (x.facts || {})[k] == null ? 'vazio' : (x.facts || {})[k]))))))),
+      Number(data.count) > (data.sample || []).length ? h('p', { class: 'none-line' }, 'e mais ' + nf(Number(data.count) - data.sample.length) + '.') : null);
+  }
+  const name = h('input', { class: 'input', id: 'au_name', type: 'text', maxlength: 60, value: r.name, placeholder: 'Ex.: Boas vindas' });
+  const trig = h('select', { class: 'input', id: 'au_trig' }, Object.keys(TRIGGERS).map(k => h('option', { value: k }, TRIGGERS[k].label)));
+  trig.value = r.trigger;
+  const hours = h('input', { class: 'input', id: 'au_hours', type: 'number', min: 0, max: 8760, inputmode: 'numeric', value: r.offset_hours });
+  const hoursLabel = h('label', { for: 'au_hours' }), hoursHelp = h('span', { class: 'help' }), quick = h('div', { class: 'chips', style: 'margin:0;padding:0' });
+  const hoursRow = h('div', { class: 'setrow' }, hoursLabel, hours, quick, hoursHelp);
+  const trigHelp = h('span', { class: 'help' });
+  const chan = h('select', { class: 'input', id: 'au_chan' }, Object.keys(CHANNELS).map(k => h('option', { value: k }, CHANNELS[k])));
+  chan.value = r.channel;
+  const chanHelp = h('span', { class: 'help warn' }, MSG_PROVIDER);
+  const title = h('input', { class: 'input', id: 'au_title', type: 'text', maxlength: 80, value: r.title });
+  const body = h('textarea', { class: 'input', id: 'au_body', maxlength: 400 }); body.value = r.body || '';
+  const ctaL = h('input', { class: 'input', type: 'text', maxlength: 30, value: r.cta_label || '', placeholder: 'Ex.: Assinar', 'aria-label': 'Texto do botão' });
+  const ctaU = h('input', { class: 'input', type: 'text', maxlength: 300, value: r.cta_url || '', placeholder: 'https:// ou ../#oferta', 'aria-label': 'Link do botão' });
+  const prev = msgPreview();
+  let lastField = body;
+  [title, body].forEach(f => f.addEventListener('focus', () => { lastField = f; }));
+  const vars = h('div', { class: 'chips', style: 'margin:0;padding:0' }, ['{nome}', '{dias}', '{cidade}', '{preco}'].map(v => h('button', { class: 'pill', type: 'button', onclick: () => {
+    const f = lastField, a = f.selectionStart ?? f.value.length, b2 = f.selectionEnd ?? a;
+    f.value = f.value.slice(0, a) + v + f.value.slice(b2);
+    f.focus(); f.setSelectionRange(a + v.length, a + v.length); paint();
+  } }, v)));
+  function paint() {
+    const T = TRIGGERS[trig.value];
+    trigHelp.textContent = T.desc;
+    hoursRow.hidden = !T.time;
+    const wasHidden = builder.hidden;
+    builder.hidden = trig.value !== 'custom';
+    if (!builder.hidden && wasHidden) { if (!conds.length) conds = [{ field: 'dias_desde_cadastro', op: 'gte', value: '1' }]; paintBuilder(); }
+    paintSentence();
+    if (T.time) {
+      hoursLabel.textContent = T.time;
+      const n = Math.max(0, parseInt(hours.value, 10) || 0);
+      hoursHelp.textContent = T.phrase(n) + '.';
+      quick.replaceChildren(...T.quick.map(([v, l]) => h('button', { class: 'pill', type: 'button', 'aria-pressed': String(n === v), onclick: () => { hours.value = v; paint(); } }, l)));
+    }
+    chanHelp.hidden = chan.value === 'in_app';
+    prev.paint(title.value, body.value, ctaL.value.trim());
+  }
+  [trig, chan].forEach(el => el.addEventListener('change', paint));
+  [hours, title, body, ctaL].forEach(el => el.addEventListener('input', paint));
+  const save = h('button', { class: 'btn', type: 'button', onclick: async () => {
+    const T = TRIGGERS[trig.value];
+    const row = { name: name.value.trim(), trigger: trig.value, offset_hours: T.time ? Math.max(0, Math.min(8760, parseInt(hours.value, 10) || 0)) : 0, channel: chan.value,
+      title: title.value.trim(), body: body.value.trim(), cta_label: ctaL.value.trim() || null, cta_url: ctaU.value.trim() || null };
+    const isCustom = row.trigger === 'custom';
+    if (isCustom) {
+      const cur = current();
+      if (!cur.conditions.length || cur.conditions.length < conds.length) return toast('Preencha todas as condições (no mínimo uma).', true);
+      Object.assign(row, { offset_hours: 0, conditions: cur.conditions, match: cur.match, repeat_days: cur.repeat_days });
+    } else if (Array.isArray(r.conditions) && r.conditions.length) Object.assign(row, { conditions: [], match: 'all', repeat_days: null });
+    if (!row.name) return toast('Dê um nome para a regra.', true);
+    if (!row.title && !row.body) return toast('Escreva o título ou a mensagem.', true);
+    if (!okUrl(row.cta_url)) return toast('O link precisa começar com https:// ou ser um caminho do próprio site.', true);
+    if (row.cta_label && !row.cta_url) return toast('O botão precisa de um link.', true);
+    save.disabled = true;
+    const ok = await dbWrite(() => isNew ? sb.from('automations').insert(Object.assign({ active: false }, row)) : sb.from('automations').update(row).eq('id', r.id), isNew ? 'Regra criada, ainda desligada.' : 'Regra salva.', ['autos'], isCustom ? 'admin3.sql' : 'admin2.sql');
+    save.disabled = false;
+    if (ok) dlg.close();
+  } }, isNew ? 'Criar regra' : 'Salvar regra');
+
+  dlg.replaceChildren(h('div', { class: 'dlg' },
+    h('div', { class: 'dlg-head' }, h('div', { class: 't' }, h('h2', null, isNew ? 'Nova regra' : 'Editar regra'), h('p', null, 'A mensagem sai sozinha quando o gatilho acontece.')),
+      h('button', { class: 'pill ghost', type: 'button', style: 'align-self:flex-start', onclick: () => dlg.close() }, 'Fechar')),
+    h('div', null,
+      h('div', { class: 'setrow' }, h('label', { for: 'au_name' }, 'Nome'), name),
+      h('div', { class: 'setrow' }, h('label', { for: 'au_trig' }, 'Gatilho'), trig, trigHelp),
+      hoursRow,
+      builder,
+      h('div', { class: 'setrow' }, h('label', { for: 'au_chan' }, 'Canal'), chan, chanHelp),
+      h('div', { class: 'setrow' }, h('label', { for: 'au_title' }, 'Título'), title),
+      h('div', { class: 'setrow' }, h('label', { for: 'au_body' }, 'Mensagem'), body, h('span', { class: 'help' }, 'Toque para inserir uma variável onde está o cursor:'), vars),
+      h('div', { class: 'setrow' }, h('label', null, 'Botão (opcional)'), h('div', { class: 'grid g2', style: 'gap:8px' }, ctaL, ctaU)),
+      h('div', { class: 'setrow' }, h('label', null, 'Como aparece no app'), h('div', { class: 'phone' }, prev), h('span', { class: 'help' }, 'Exemplo com Ana, 3 dias e Belo Horizonte no lugar das variáveis.'))),
+    sentence,
+    h('div', { class: 'btnrow two' }, h('button', { class: 'btn alt', type: 'button', onclick: () => dlg.close() }, 'Cancelar'), save)));
+  chan.addEventListener('change', paintSentence);
+  paint();
+  dlg.showModal(); dlg.scrollTop = 0;
+}
+
+function automationsView() {
+  const root = h('div', { class: 'stack' });
+  const runStat = name => { const rs = (D.runs || []).filter(x => x.automation === name); return { sent: rs.length, read: rs.filter(x => x.read_at).length }; };
+
+  // rules
+  const g = guard(['autos']);
+  const rulesHead = h('div', { class: 'toolbar' }, h('h2', { class: 'sec-title', style: 'margin:0' }, 'Regras'), h('button', { class: 'pill primary', type: 'button', style: 'margin-left:auto', disabled: !!g, onclick: () => openAuto(null) }, 'Nova regra'));
+  root.append(rulesHead);
+  if (g) root.append(h('section', { class: 'card' }, g));
+  else if (!D.autos.length) root.append(h('section', { class: 'card' }, h('p', { class: 'none-line' }, 'Nenhuma regra ainda. Crie a primeira em "Nova regra".')));
+  else {
+    const grid = h('div', { class: 'grid g2' });
+    D.autos.forEach(a => {
+      const T = TRIGGERS[a.trigger] || { label: a.trigger, phrase: () => a.trigger };
+      const st = runStat(a.name);
+      const sw = h('input', { type: 'checkbox', class: 'switch ok', role: 'switch', 'aria-label': 'Regra ativa: ' + a.name, checked: !!a.active });
+      sw.addEventListener('change', async () => {
+        const want = sw.checked;
+        sw.disabled = true;
+        const ok = await dbWrite(() => sb.from('automations').update({ active: want }).eq('id', a.id), want ? 'Regra ligada.' : 'Regra desligada.', ['autos']);
+        sw.disabled = false;
+        if (!ok) sw.checked = !want;
+      });
+      grid.append(h('section', { class: 'card rule' + (a.active ? '' : ' off') },
+        h('div', { class: 'switchrow' }, h('div', { style: 'min-width:0' }, h('h2', { class: 'rule-name' }, a.name), h('p', { class: 'rule-when' }, T.phrase(Number(a.offset_hours) || 0, a))), sw),
+        h('div', { class: 'rule-meta' }, h('span', { class: 'badge ' + (a.channel === 'in_app' ? 'trial' : 'soon') }, CHANNELS[a.channel] || a.channel), h('span', { class: 'badge ' + (a.active ? 'paid' : '') }, a.active ? 'ativa' : 'desligada'),
+          h('span', { class: 'rule-count num' }, h('b', null, nf(st.sent)), ' enviadas'), h('span', { class: 'rule-count num' }, h('b', null, nf(st.read)), ' lidas')),
+        a.channel !== 'in_app' ? h('p', { class: 'help warn' }, MSG_PROVIDER) : null,
+        h('div', { class: 'msgprev mini' }, h('div', { class: 'msgtxt' }, h('b', null, fillVars(a.title) || 'sem título'), a.body ? h('p', null, fillVars(a.body)) : null), a.cta_label ? h('span', { class: 'msgbtn' }, a.cta_label) : null),
+        h('div', { class: 'btnrow' },
+          h('button', { class: 'btn alt sm', type: 'button', onclick: () => openAuto(a) }, 'Editar'),
+          h('button', { class: 'btn alt sm', type: 'button', onclick: () => { const c = Object.assign({}, a, { name: (a.name + ' (cópia)').slice(0, 60) }); delete c.id; delete c.created_at; openAuto(c); } }, 'Duplicar'),
+          h('button', { class: 'btn danger sm', type: 'button', onclick: async () => {
+            if (!await confirmBox({ title: 'Excluir esta regra?', text: '"' + a.name + '" e o histórico de envios dela somem. As mensagens já entregues continuam no app.', ok: 'Excluir regra', danger: true })) return;
+            dbWrite(() => sb.from('automations').delete().eq('id', a.id), 'Regra excluída.', ['autos', 'runs']);
+          } }, 'Excluir'))));
+    });
+    root.append(grid);
+  }
+
+  // engine
+  root.append(card('Motor', 'roda sozinho a cada 15 minutos e só gera cada mensagem uma vez por pessoa', ['runs'], (c, head) => {
+    const runBtn = h('button', { class: 'pill primary', type: 'button', style: 'margin-left:auto', onclick: async () => {
+      if (S.demo) return toast('Modo demonstração: nada foi alterado.');
+      runBtn.disabled = true;
+      try {
+        const { data, error } = await sb.rpc('admin_run_automations');
+        if (error) throw error;
+        toast(plural(Number(data) || 0, 'mensagem gerada', 'mensagens geradas') + '.');
+        await load(['runs']);
+      } catch (err) { toast(explain(err, 'admin2.sql'), true); }
+      runBtn.disabled = false;
+    } }, 'Rodar agora');
+    head.append(runBtn);
+    const names = [...new Set(D.runs.map(x => x.automation).filter(Boolean))];
+    const sel = h('select', { class: 'input', 'aria-label': 'Filtrar por regra', style: 'margin-bottom:12px', onchange: ev => { S.runFilter = ev.target.value; S.runShown = 15; draw(); } }, h('option', { value: '' }, 'Todas as regras'), names.map(n => h('option', { value: n }, n)));
+    sel.value = names.includes(S.runFilter) ? S.runFilter : '';
+    const holder = h('div');
+    const status = x => x.read_at ? ['lida', 'paid'] : x.status === 'delivered' ? ['entregue', 'trial'] : x.status === 'waiting_provider' ? ['aguardando provedor', 'soon'] : [x.status || 'na fila', ''];
+    const draw = () => {
+      const rows = D.runs.filter(x => !sel.value || x.automation === sel.value);
+      if (!rows.length) { holder.replaceChildren(h('p', { class: 'none-line' }, D.runs.length ? 'Nenhuma execução dessa regra.' : 'Nenhuma mensagem gerada até agora. Ligue uma regra e toque em "Rodar agora".')); return; }
+      const body = h('tbody');
+      rows.slice(0, S.runShown).forEach(x => { const [lbl, cls] = status(x); body.append(h('tr', null,
+        h('td', { class: 'lead' }, h('div', { class: 'ucell' }, h('div', null, h('b', null, x.name || x.email), x.name ? h('span', null, x.email) : null))),
+        h('td', { 'data-l': 'Quando', class: 'mut num' }, dthm(x.created_at)),
+        h('td', { 'data-l': 'Regra' }, x.automation),
+        h('td', { 'data-l': 'Canal', class: 'mut' }, CHANNELS[x.channel] || x.channel),
+        h('td', { 'data-l': 'Status' }, h('span', { class: 'badge ' + cls }, lbl)))); });
+      holder.replaceChildren(h('div', { class: 'tablewrap' }, h('table', { class: 'rt' }, h('thead', null, h('tr', null, ...['Pessoa', 'Quando', 'Regra', 'Canal', 'Status'].map(t => h('th', { scope: 'col' }, t)))), body)),
+        rows.length > S.runShown ? h('div', { class: 'more' }, h('button', { class: 'pill', type: 'button', onclick: () => { S.runShown += 30; draw(); } }, 'Mostrar mais')) : '');
+    };
+    c.append(sel, holder); draw();
+  }));
+
+  root.append(card('Envios por canal', 'mensagens geradas pelo motor', ['runs'], c => {
+    const m = new Map(); D.runs.forEach(x => m.set(x.channel, (m.get(x.channel) || 0) + 1));
+    c.append(donut(Object.keys(CHANNELS).map(k => ({ label: CHANNELS[k], value: m.get(k) || 0 })), { id: 'au-chan', unit: 'mensagens', centerLabel: 'mensagens', emptyText: 'Nenhuma mensagem gerada ainda' }));
+  }));
+
+  // one-off message
+  root.append(card('Mensagem avulsa', 'aparece dentro do app para quem você escolher', ['users'], c => {
+    let target = 'one', picked = null;
+    const active = D.users.filter(u => { const l = lic(u); return !l.expired && !l.blocked; });
+    const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Para quem' });
+    const who = h('div', { class: 'stack', style: 'gap:8px' });
+    const q = h('input', { class: 'input', type: 'search', placeholder: 'Buscar pessoa por nome ou e-mail', 'aria-label': 'Buscar pessoa', autocomplete: 'off' });
+    const results = h('div');
+    const title = h('input', { class: 'input', type: 'text', maxlength: 80, placeholder: 'Título', 'aria-label': 'Título' });
+    const body = h('textarea', { class: 'input', maxlength: 400, placeholder: 'Texto da mensagem', 'aria-label': 'Texto' });
+    const ctaL = h('input', { class: 'input', type: 'text', maxlength: 30, placeholder: 'Texto do botão (opcional)', 'aria-label': 'Texto do botão' });
+    const ctaU = h('input', { class: 'input', type: 'text', maxlength: 300, placeholder: 'Link do botão', 'aria-label': 'Link do botão' });
+    const prev = msgPreview();
+    const paintPrev = () => prev.paint(title.value, body.value, ctaL.value.trim());
+    [title, body, ctaL].forEach(el => el.addEventListener('input', paintPrev));
+    const paintWho = () => {
+      seg.replaceChildren(...[['one', 'Uma pessoa'], ['all', 'Todos com licença ativa']].map(([id, l]) => h('button', { type: 'button', 'aria-pressed': String(target === id), onclick: () => { target = id; paintWho(); } }, l)));
+      if (target === 'all') { who.replaceChildren(h('p', { class: 'none-line' }, 'Vai para ' + plural(active.length, 'conta', 'contas') + ' com licença ativa.')); return; }
+      if (picked) { who.replaceChildren(h('div', { class: 'urow' }, avatar(picked), h('div', { class: 'who', style: 'cursor:default;min-height:0' }, h('b', null, picked.name || picked.email), h('span', null, picked.email)), h('button', { class: 'pill', type: 'button', onclick: () => { picked = null; paintWho(); q.focus(); } }, 'Trocar'))); return; }
+      who.replaceChildren(q, results); paintResults();
+    };
+    const paintResults = () => {
+      const t = q.value.trim().toLowerCase();
+      if (!t) { results.replaceChildren(); return; }
+      const found = D.users.filter(u => (u.name || '').toLowerCase().includes(t) || (u.email || '').toLowerCase().includes(t)).slice(0, 6);
+      results.replaceChildren(...(found.length ? found.map(u => h('div', { class: 'urow' }, avatar(u), h('button', { class: 'who', type: 'button', onclick: () => { picked = u; paintWho(); } }, h('b', null, u.name || u.email), h('span', null, u.email)))) : [h('p', { class: 'none-line' }, 'Ninguém com esse nome ou e-mail.')]));
+    };
+    q.addEventListener('input', paintResults);
+    const send = h('button', { class: 'btn', type: 'button', onclick: async () => {
+      const row = { title: title.value.trim(), body: body.value.trim(), cta_label: ctaL.value.trim() || null, cta_url: ctaU.value.trim() || null };
+      if (!row.title && !row.body) return toast('Escreva o título ou o texto.', true);
+      if (!okUrl(row.cta_url)) return toast('O link precisa começar com https:// ou ser um caminho do próprio site.', true);
+      if (row.cta_label && !row.cta_url) return toast('O botão precisa de um link.', true);
+      const list = target === 'all' ? active : picked ? [picked] : [];
+      if (!list.length) return toast(target === 'all' ? 'Não há contas com licença ativa.' : 'Escolha uma pessoa.', true);
+      if (target === 'all' && !await confirmBox({ title: 'Enviar para todos?', text: 'A mensagem aparece no app de ' + plural(list.length, 'conta', 'contas') + ' com licença ativa. Não dá para desfazer.', ok: 'Enviar para ' + nf(list.length) })) return;
+      send.disabled = true;
+      let ok = true;
+      for (let i = 0; i < list.length && ok; i += 500) ok = await dbWrite(() => sb.from('user_messages').insert(list.slice(i, i + 500).map(u => Object.assign({ user_id: u.id }, row))));
+      send.disabled = false;
+      if (!ok) return;
+      toast(list.length === 1 ? 'Mensagem enviada para ' + (list[0].name || list[0].email) + '.' : 'Mensagem enviada para ' + nf(list.length) + ' contas.');
+      title.value = ''; body.value = ''; ctaL.value = ''; ctaU.value = ''; paintPrev();
+    } }, 'Enviar mensagem');
+    c.append(h('div', { class: 'grid g2', style: 'align-items:start' },
+      h('div', { class: 'stack', style: 'gap:10px' }, seg, who, title, body, h('div', { class: 'grid g2', style: 'gap:8px' }, ctaL, ctaU)),
+      h('div', { class: 'stack', style: 'gap:10px' }, h('div', { class: 'phone' }, h('div', { class: 'bar' }, h('img', { src: '../mark.png', alt: '' }), 'King Pad', h('span', { class: 'tag', style: 'margin-left:auto' }, 'prévia')), prev), send)));
+    paintWho(); paintPrev();
+  }));
+  return root;
+}
 
 /* ------------------------------------------------------------------ views */
 const MENU = [
   { id: 'overview', label: 'Visão geral', short: 'Geral', icon: 'M4 13h6V4H4z|M14 20h6v-9h-6z|M4 20h6v-3H4z|M14 7h6V4h-6z' },
   { id: 'users', label: 'Usuários', short: 'Usuários', icon: 'M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19|M10 10.5a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5z|M20 19v-1.5a3.5 3.5 0 0 0-2.5-3.3|M15.5 4.2a3.25 3.25 0 0 1 0 6.1' },
+  { id: 'geo', label: 'Logins e mapa', short: 'Logins', icon: 'M12 21s-6.5-5.6-6.5-10.5a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21z|M12 13a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z' },
   { id: 'licenses', label: 'Licenças e receita', short: 'Licenças', icon: 'M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 16.5z|M3 10.5h18|M7 14.5h4' },
   { id: 'usage', label: 'Uso do app', short: 'Uso', icon: 'M4 20V10|M10 20V4|M16 20v-8|M21 20H3' },
   { id: 'marketing', label: 'Marketing', short: 'Marketing', icon: 'M4 10v4a1 1 0 0 0 1 1h2l5 4V5L7 9H5a1 1 0 0 0-1 1z|M16 9a4 4 0 0 1 0 6|M18.5 6.5a7.5 7.5 0 0 1 0 11' },
+  { id: 'autos', label: 'Automações', short: 'Automações', icon: 'M13 3L5 13.5h6L10 21l8-10.5h-6z' },
   { id: 'settings', label: 'Configurações', short: 'Ajustes', icon: 'M4 7h10|M18 7h2|M4 17h2|M10 17h10|M16 9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z|M8 19.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z' },
   { id: 'health', label: 'Saúde', short: 'Saúde', icon: 'M3 12h4l2.5-6 4 12 2.5-6h5' },
 ];
 const SUBS = {
   overview: 'Como está o negócio hoje.',
   users: 'Todas as contas, com licença e uso.',
-  licenses: 'Quem vence, o que entrou e o que mudou.',
+  geo: 'De onde as pessoas entram e o registro de cada login.',
+  licenses: 'Receita, assinantes, vencimentos e o que mudou.',
   usage: 'O que as pessoas fazem dentro do app.',
   marketing: 'Da visita na página de vendas até o cadastro.',
+  autos: 'Mensagens que saem sozinhas quando algo acontece.',
   settings: 'Operação do app sem publicar versão nova.',
   health: 'Erros, versões e armazenamento.',
 };
@@ -926,7 +1931,7 @@ function go(id) {
 function renderTop() {
   const m = MENU.find(x => x.id === S.view);
   const right = h('div', { class: 'right' });
-  if (['overview', 'usage', 'marketing'].includes(S.view)) right.append(periodSeg());
+  if (['overview', 'geo', 'usage', 'marketing'].includes(S.view)) right.append(periodSeg());
   right.append(h('span', { class: 'stamp' }, S.loadedAt ? 'Atualizado às ' + two(S.loadedAt.getHours()) + ':' + two(S.loadedAt.getMinutes()) : ''));
   $('#topbar').replaceChildren(h('h1', null, m.label), right, h('p', { class: 'sub' }, SUBS[S.view]));
 }
@@ -936,6 +1941,7 @@ function render() {
   renderTop();
   const view = $('#view');
   view.replaceChildren(VIEWS[S.view]());
+  runCounters();
 }
 
 const VIEWS = {
@@ -946,14 +1952,18 @@ const VIEWS = {
     if (g) root.append(h('section', { class: 'card' }, g));
     else {
       const c = summary();
+      const now0 = Date.now(), made = D.users.map(u => new Date(u.created_at).getTime());
+      const signSpark = (() => { const m = new Map(); D.users.forEach(u => { const k = dayKey(u.created_at); m.set(k, (m.get(k) || 0) + 1); }); return lastDays(S.days).map(k => m.get(k) || 0); })();
+      const B0 = D.log ? bi() : null;
+      const mrrPrev = B0 && B0.per.get(B0.months[10]).active ? B0.per.get(B0.months[10]).active * B0.P : null;
       root.append(h('div', { class: 'kpis' },
-        kpi('MRR', brl(c.mrr), plural(c.paid, 'assinante ativo', 'assinantes ativos') + ' x ' + brl(PRICE), { hero: true, est: true }),
-        kpi('Contas totais', nf(c.total), c.life ? plural(c.life, 'vitalícia', 'vitalícias') : null),
-        kpi('Novas em 7 dias', nf(c.new7), nf(c.new30) + ' em 30 dias'),
-        kpi('Em teste', nf(c.trial), null, { dot: 'blue' }),
-        kpi('Assinantes', nf(c.paid), null, { dot: 'green' }),
-        kpi('Vencidos', nf(c.expired), c.blocked ? plural(c.blocked, 'bloqueado', 'bloqueados') : null, { dot: 'red' }),
-        kpi('Vencem em 7 dias', nf(c.soon7), null, { dot: 'amber' }),
+        kpi('MRR', c.mrr, plural(c.paid, 'assinante ativo', 'assinantes ativos') + ' x ' + brl(price()), { hero: true, est: true, fmtNum: brl, delta: { cur: c.mrr, prev: mrrPrev, label: 'vs mês anterior' }, spark: B0 ? B0.months.slice(-6).map((k, i) => (i === 5 ? Math.max(B0.per.get(k).active, c.paid) : B0.per.get(k).active) * B0.P) : null }),
+        kpi('Contas totais', c.total, c.life ? plural(c.life, 'vitalícia', 'vitalícias') : null, { delta: { cur: c.total, prev: made.filter(x => x < now0 - S.days * DAY).length, label: 'vs ' + S.days + ' dias atrás' }, spark: signSpark.map((v, i, a) => a.slice(0, i + 1).reduce((x, y) => x + y, 0)) }),
+        kpi('Novas em 7 dias', c.new7, nf(c.new30) + ' em 30 dias', { delta: { cur: c.new7, prev: made.filter(x => x < now0 - 7 * DAY && x >= now0 - 14 * DAY).length, label: 'vs 7 dias anteriores' }, spark: signSpark.slice(-14) }),
+        kpi('Em teste', Number(c.trial) || 0, null, { dot: 'blue' }),
+        kpi('Assinantes', Number(c.paid) || 0, null, { dot: 'green' }),
+        kpi('Vencidos', Number(c.expired) || 0, c.blocked ? plural(c.blocked, 'bloqueado', 'bloqueados') : null, { dot: 'red' }),
+        kpi('Vencem em 7 dias', Number(c.soon7) || 0, null, { dot: 'amber' }),
         kpi('Conversão teste para pago', pct(c.conv), c.conv == null ? 'precisa de testes encerrados' : nf(c.paid) + ' pagantes de ' + nf(c.paid + c.expiredTrial) + ' que já passaram pelo teste', { est: true, wide: true })));
     }
 
@@ -966,13 +1976,14 @@ const VIEWS = {
       if (steps.slice(0, 7).every(x => !x.v)) { c.append(emptyChart()); return; }
       const max = Math.max(...steps.map(x => x.v));
       const box = h('div', { class: 'funnel' });
+      const from = motion(box, 'funnel', steps.map(x => x.v));
       steps.forEach((st, i) => {
         const prev = i ? steps[i - 1].v : 0;
         let drop = '';
         if (i && prev > 0) { const d = Math.round(100 * (st.v - prev) / prev); drop = d <= 0 ? 'queda de ' + Math.abs(d) + '%' : 'alta de ' + d + '%'; }
         box.append(h('div', { class: 'fstep' },
           h('span', { class: 'fl' }, st.label), h('span', { class: 'fv' }, nf(st.v)),
-          h('span', { class: 'fcol' }, h('span', { class: 'fbar' + (st.v ? '' : ' zero'), style: `--p:${st.v ? Math.max(2, 100 * st.v / max).toFixed(1) : 0}%` })),
+          h('span', { class: 'fcol' }, h('span', { class: 'fbar' + (st.v ? ' fb' : ' zero'), style: `--p:${st.v ? Math.max(2, 100 * st.v / max).toFixed(1) : 0}%;--from:${from(i)};--d:${i * 45}ms` })),
           h('span', { class: 'fd' }, drop)));
       });
       c.append(box);
@@ -984,10 +1995,10 @@ const VIEWS = {
       D.users.forEach(u => { const k = dayKey(u.created_at); counts.set(k, (counts.get(k) || 0) + 1); });
       const pts = lastDays(S.days).map(k => ({ label: dayLabel(k), value: counts.get(k) || 0 }));
       head.append(h('span', { class: 'total' }, nf(pts.reduce((a, p) => a + p.value, 0))));
-      c.append(seriesChart('line', pts, { unit: 'cadastros', aria: 'Cadastros por dia', emptyText: 'Nenhum cadastro nesse período' }));
+      c.append(seriesChart('line', pts, { id: 'ov-sign', unit: 'cadastros', aria: 'Cadastros por dia', emptyText: 'Nenhum cadastro nesse período' }));
     }));
     two.append(card('Usuários ativos por dia', 'abriram o app ou tocaram', ['stats'], c => {
-      c.append(seriesChart('bar', fillDays('active_users'), { unit: 'ativos', aria: 'Usuários ativos por dia' }));
+      c.append(seriesChart('bar', fillDays('active_users'), { id: 'ov-active', unit: 'ativos', aria: 'Usuários ativos por dia' }));
     }));
     root.append(two);
 
@@ -1015,6 +2026,7 @@ const VIEWS = {
       ['blocked', 'Bloqueados', u => !!u.blocked],
       ['google', 'Google', u => u.provider === 'google'],
       ['email', 'E-mail', u => u.provider === 'email'],
+      ['life', 'Vitalícios', u => lic(u).key === 'life'],
     ];
     const COLS = [
       ['name', 'Conta'], ['expires_at', 'Licença'], ['plan', 'Plano'], ['created_at', 'Criada'], ['last_seen', 'Último acesso'], ['minutes', 'Minutos', 'n'], ['plays', 'Plays', 'n'],
@@ -1031,7 +2043,15 @@ const VIEWS = {
       .forEach(([v, l]) => sortSel.append(h('option', { value: v }, l)));
     sortSel.value = S.sort.key + ':' + S.sort.dir;
     const listCard = h('section', { class: 'card' });
-    root.append(h('div', { class: 'tools' }, search, chips, sortSel), listCard);
+    const setFilter = id => { S.filter = S.filter === id ? 'all' : id; S.shown = 60; render(); };
+    const pickedIn = ids => ids.includes(S.filter) ? S.filter : null;
+    const count = id => D.users.filter(FILTERS.find(f => f[0] === id)[2]).length;
+    const visuals = h('div', { class: 'grid g2', style: 'margin-bottom:14px' },
+      card('Estado das licenças', 'toque em uma fatia para filtrar a tabela', [], c => c.append(donut([['trial', 'Em teste'], ['paid', 'Assinantes'], ['expired', 'Vencidos'], ['life', 'Vitalícios'], ['blocked', 'Bloqueados']].map(([key, label]) => ({ key, label, value: count(key) })),
+        { id: 'us-lic', unit: 'contas', centerLabel: 'contas', picked: pickedIn(['trial', 'paid', 'expired', 'life', 'blocked']), onPick: p => setFilter(p.key), emptyText: 'Ainda não há contas' }))),
+      card('Forma de login', 'toque para filtrar', [], c => c.append(donut([['google', 'Google'], ['email', 'E-mail e senha']].map(([key, label]) => ({ key, label, value: count(key) })),
+        { id: 'us-prov', unit: 'contas', centerLabel: 'contas', picked: pickedIn(['google', 'email']), onPick: p => setFilter(p.key), emptyText: 'Ainda não há contas' }))));
+    root.append(visuals, h('div', { class: 'tools' }, search, S.filter !== 'all' ? filterChip(FILTERS.find(f => f[0] === S.filter)[1], () => setFilter(S.filter)) : null, chips, sortSel), listCard);
 
     function sortVal(u, k) {
       if (k === 'name') return (u.name || u.email || '').toLowerCase();
@@ -1072,9 +2092,130 @@ const VIEWS = {
     return root;
   },
 
-  /* ---------------------------------------------- 3. licenses and revenue */
+  /* ---------------------------------------------- logins and map */
+  geo() {
+    loadMap();
+    const root = h('div', { class: 'stack' });
+    const METRICS = [['accounts', 'Contas', 'contas'], ['signups', 'Cadastros no período', 'cadastros'], ['installs', 'Instalações', 'instalações'], ['paying', 'Pagantes', 'pagantes'], ['logins', 'Logins', 'logins'], ['visitors', 'Visitantes da página', 'visitantes']];
+    const since = Date.now() - S.days * DAY;
+
+    const gk = guard(['geo']);
+    if (gk) root.append(h('section', { class: 'card' }, gk));
+    else {
+      const g = D.geo;
+      const cities = g.cities || [];
+      const total = Number(g.logins_total) || 0, located = Number(g.located) || 0;
+      const newCity = D.logins ? D.logins.filter(l => l.new_city && new Date(l.created_at).getTime() >= since).length : null;
+      const L = D.logins || [], t1 = Date.now() - S.days * DAY, t2 = t1 - S.days * DAY;
+      const covers = L.length && (L.length < 1000 || new Date(L[L.length - 1].created_at).getTime() <= t2);   // the 1,000 newest rows must reach the previous window
+      const perDay = (() => { const m = new Map(); L.forEach(l => { const k = dayKey(l.created_at); m.set(k, (m.get(k) || 0) + 1); }); return lastDays(S.days).map(k => m.get(k) || 0); })();
+      root.append(h('div', { class: 'kpis five' },
+        kpi('Logins no período', total, 'últimos ' + S.days + ' dias', { delta: { cur: total, prev: covers ? L.filter(l => { const x = new Date(l.created_at).getTime(); return x < t1 && x >= t2; }).length : null }, spark: perDay }),
+        kpi('Com localização', total ? pct(100 * located / total) : 'sem dados', total ? nf(located) + ' de ' + nf(total) : null),
+        kpi('Cidades diferentes', Number(cities.length) || 0),
+        kpi('Estados diferentes', nf((g.states || []).filter(x => x.state && x.state !== 'outro').length)),
+        kpi('Logins em cidade nova', newCity == null ? 'sem dados' : nf(newCity), null, { dot: 'amber' })));
+
+      const chips = h('div', { class: 'chips', role: 'group', 'aria-label': 'Métrica do mapa' });
+      METRICS.forEach(([id, label]) => chips.append(h('button', { class: 'pill', type: 'button', 'aria-pressed': String(S.geoMetric === id), onclick: () => { S.geoMetric = id; render(); } }, label)));
+      root.append(chips);
+      if (S.geoState || S.geoCity) root.append(filterChip(S.geoCity || S.geoState, () => { S.geoState = null; S.geoCity = null; render(); }));
+
+      const M = METRICS.find(m => m[0] === S.geoMetric) || METRICS[0];
+      const stat = new Map(cities.map(c => [c.city + '|' + (c.region_code || ''), c]));
+      const vis = new Map((g.visitors || []).map(v => [v.city + '|' + (v.region_code || ''), Number(v.visitors) || 0]));
+      const src = M[0] === 'visitors'
+        ? (g.visitors || []).map(v => ({ city: v.city, uf: v.region_code, country: (stat.get(v.city + '|' + (v.region_code || '')) || {}).country, lat: v.lat, lon: v.lon, value: Number(v.visitors) || 0 }))
+        : cities.map(c => ({ city: c.city, uf: c.region_code, country: c.country, lat: c.lat, lon: c.lon, value: Number(c[M[0]]) || 0 }));
+      const all = src.filter(e => e.city && e.value > 0).map(e => {
+        const c = stat.get(e.city + '|' + (e.uf || '')) || {};
+        const v = vis.get(e.city + '|' + (e.uf || ''));
+        e.rows = [['Contas', c.accounts], ['Cadastros no período', c.signups], ['Instalações', c.installs], ['Pagantes', c.paying], ['Logins', c.logins], ['Visitantes', v]]
+          .filter(r => r[1] != null).map(r => ({ name: r[0], value: nf(r[1]) }));
+        return e;
+      });
+      const inFrame = e => MAP ? (() => { const x = (e.lon - MAP.lon0) * MAP.k, y = (MAP.lat0 - e.lat) * MAP.k; return x >= 0 && x <= MAP.w && y >= 0 && y <= MAP.h; })() : true;
+      const isBr = e => e.lat != null && e.lon != null && inFrame(e) && (!e.country || /bra[sz]il|^br$/i.test(e.country));
+      const inside = all.filter(isBr).map(e => Object.assign(e, { dim: (S.geoState && e.uf !== S.geoState) || (S.geoCity && e.city + (e.uf ? '/' + e.uf : '') !== S.geoCity) })), outside = all.filter(e => !isBr(e));
+
+      const grid = h('div', { class: 'mapgrid' });
+      grid.append(card('Mapa', M[1] + ' por cidade, área da bolha proporcional', [], c => {
+        c.append(geoMap(inside, M[2]));
+        if (outside.length) c.append(h('p', { class: 'none-line' }, 'Fora do Brasil ou sem coordenada: ' + outside.slice(0, 8).map(e => e.city + ' (' + nf(e.value) + ')').join(', ') + (outside.length > 8 ? ' e mais ' + nf(outside.length - 8) : '') + '.'));
+      }));
+      const side = h('div', { class: 'stack' });
+      side.append(card('Estados', M[1].toLowerCase(), [], c => {
+        let rows;
+        if (M[0] === 'visitors') { const m = new Map(); (g.visitors || []).forEach(v => m.set(v.region_code || 'outro', (m.get(v.region_code || 'outro') || 0) + (Number(v.visitors) || 0))); rows = [...m].map(([k, v]) => ({ label: k, value: v })); }
+        else rows = (g.states || []).map(x => ({ label: x.state || 'outro', value: Number(x[M[0]]) || 0 }));
+        c.append(hbars(rows.filter(r => r.value > 0).sort((a, b) => b.value - a.value).slice(0, 12), { id: 'geo-st-' + M[0], unit: M[2], picked: S.geoState, onPick: r => { S.geoState = S.geoState === r.label ? null : r.label; S.geoCity = null; S.lpage = 0; render(); } }));
+      }));
+      side.append(card('Cidades', S.geoState ? 'as primeiras de ' + S.geoState : 'as 15 primeiras', [], c => {
+        c.append(hbars(all.filter(e => !S.geoState || e.uf === S.geoState).sort((a, b) => b.value - a.value).slice(0, 15).map(e => ({ label: e.city + (e.uf ? '/' + e.uf : ''), value: e.value })), { id: 'geo-ct-' + M[0] + (S.geoState || ''), unit: M[2], picked: S.geoCity, onPick: r => { S.geoCity = S.geoCity === r.label ? null : r.label; S.lpage = 0; render(); } }));
+      }));
+      grid.append(side);
+      root.append(grid);
+    }
+
+    // full login record
+    const FILTERS = [
+      ['all', 'Todos', () => true],
+      ['newcity', 'Cidade nova', l => !!l.new_city],
+      ['iphone', 'iPhone', l => /iphone|ipad|ios/i.test((l.device || '') + ' ' + (l.os || ''))],
+      ['android', 'Android', l => /android/i.test((l.device || '') + ' ' + (l.os || ''))],
+      ['desktop', 'Computador', l => /desktop|computador|mac|windows|linux/i.test((l.device || '') + ' ' + (l.os || '')) && !/iphone|ipad|ios|android/i.test((l.device || '') + ' ' + (l.os || ''))],
+      ['installed', 'Instalado', l => l.standalone === true],
+    ];
+    const gl = guard(['logins']);
+    if (gl) { root.append(h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('h2', null, 'Registro de logins')), gl)); return root; }
+    const listCard = h('section', { class: 'card' });
+    const chips2 = h('div', { class: 'chips', role: 'group', 'aria-label': 'Filtros de login' });
+    FILTERS.forEach(([id, label, fn]) => chips2.append(h('button', { class: 'pill', type: 'button', 'aria-pressed': String(S.lfilter === id),
+      onclick: ev => { S.lfilter = id; S.lpage = 0; chips2.querySelectorAll('.pill').forEach(b => b.setAttribute('aria-pressed', 'false')); ev.currentTarget.setAttribute('aria-pressed', 'true'); draw(); } },
+      label, h('span', { class: 'count' }, nf(D.logins.filter(fn).length)))));
+    const search = h('div', { class: 'search' }, icon('M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z|M20 20l-4-4'),
+      h('input', { type: 'search', placeholder: 'Buscar por nome, e-mail, cidade ou IP', value: S.lq, 'aria-label': 'Buscar logins', autocomplete: 'off', oninput: ev => { S.lq = ev.target.value; S.lpage = 0; draw(); } }));
+    root.append(h('div', { class: 'tools', style: 'margin:6px 0 0' }, h('h2', { class: 'sec-title' }, 'Registro de logins'), search, chips2), listCard);
+
+    const where = l => [l.city, l.region_code].filter(Boolean).join('/') || 'sem localização';
+    const mode = l => l.standalone === true ? 'instalado' : l.standalone === false ? 'navegador' : 'não informado';
+    const prov = l => l.provider === 'google' ? 'Google' : l.provider === 'email' ? 'e-mail e senha' : (l.provider || 'não informado');
+    function filtered() {
+      const q = S.lq.trim().toLowerCase();
+      const fn = FILTERS.find(f => f[0] === S.lfilter)[2];
+      return D.logins.filter(l => fn(l) && (!S.geoState || l.region_code === S.geoState) && (!S.geoCity || [l.city, l.region_code].filter(Boolean).join('/') === S.geoCity) && (!q || [l.name, l.email, l.city, l.region, l.ip].some(v => (v || '').toLowerCase().includes(q))));
+    }
+    function draw() {
+      const rows = filtered();
+      const pages = Math.ceil(rows.length / 50);
+      S.lpage = Math.min(S.lpage, Math.max(0, pages - 1));
+      const head = h('div', { class: 'card-head' }, h('h2', null, plural(rows.length, 'login', 'logins')), h('span', { class: 'hint' }, 'até os 1.000 mais recentes'),
+        h('button', { class: 'pill', type: 'button', style: 'margin-left:auto', disabled: !rows.length, onclick: () => downloadCsv('kingpad-logins-' + dayKey(Date.now()) + '.csv',
+          ['Data', 'Hora', 'Nome', 'E-mail', 'Cidade', 'UF', 'País', 'IP', 'Operadora', 'Aparelho', 'Sistema', 'Navegador', 'Modo', 'Login', 'Versão', 'Cidade nova'],
+          rows.map(l => [dmy(l.created_at), dthm(l.created_at).slice(6), l.name, l.email, l.city, l.region_code || l.region, l.country, l.ip, l.isp, l.device, l.os, l.browser, mode(l), prov(l), l.build, l.new_city ? 'sim' : 'não'])) }, 'Exportar CSV'));
+      if (!rows.length) { listCard.replaceChildren(head, h('p', { class: 'none-line' }, D.logins.length ? 'Nenhum login com esse filtro.' : 'Ainda não há logins registrados. O registro começa quando o app novo entra no ar.')); return; }
+      const body = h('tbody');
+      rows.slice(S.lpage * 50, S.lpage * 50 + 50).forEach(l => body.append(h('tr', null,
+        h('td', { class: 'lead' }, personCell(l.name, l.email, l.user_id)),
+        h('td', { 'data-l': 'Quando', class: 'mut num' }, dthm(l.created_at)),
+        h('td', { 'data-l': 'Cidade' }, h('span', { class: 'twol' }, h('span', null, where(l), l.new_city ? h('span', { class: 'badge soon', style: 'margin-left:8px' }, 'cidade nova') : null), h('small', null, l.country || 'país não informado'))),
+        h('td', { 'data-l': 'IP e operadora', class: 'mut' }, h('span', { class: 'twol' }, h('span', { class: 'num' }, l.ip || 'sem IP'), h('small', null, l.isp || 'operadora não informada'))),
+        h('td', { 'data-l': 'Aparelho', class: 'mut' }, h('span', { class: 'twol' }, h('span', null, l.device || 'não informado'), h('small', null, [l.os, l.browser].filter(Boolean).join(', ') || 'sistema não informado'))),
+        h('td', { 'data-l': 'Modo', class: 'mut' }, mode(l)),
+        h('td', { 'data-l': 'Login', class: 'mut' }, prov(l)),
+        h('td', { 'data-l': 'Versão', class: 'mut num' }, l.build || 'sem versão'))));
+      listCard.replaceChildren(head, h('div', { class: 'tablewrap' }, h('table', { class: 'rt' },
+        h('thead', null, h('tr', null, ...['Pessoa', 'Quando', 'Cidade e país', 'IP e operadora', 'Aparelho, sistema e navegador', 'Modo', 'Login', 'Versão'].map(t => h('th', { scope: 'col' }, t)))), body)));
+      if (pages > 1) listCard.append(pager(S.lpage, pages, p => { S.lpage = p; draw(); listCard.scrollIntoView({ block: 'start' }); }));
+    }
+    draw();
+    return root;
+  },
+
+  /* ---------------------------------------------- licenses and revenue */
   licenses() {
     const root = h('div', { class: 'stack' });
+    licensesBI(root);
     const lists = h('div', { class: 'grid g3', style: 'align-items:start' });
     const now = Date.now();
     const bucket = (title, hint, test) => card(title, hint, ['users'], (c, head) => {
@@ -1088,35 +2229,10 @@ const VIEWS = {
     lists.append(bucket('Vencem hoje', 'nas próximas 24 h', ms => ms <= DAY), bucket('Em 3 dias', 'de 1 a 3 dias', ms => ms > DAY && ms <= 3 * DAY), bucket('Em 7 dias', 'de 3 a 7 dias', ms => ms > 3 * DAY && ms <= 7 * DAY));
     root.append(lists);
 
-    root.append(card('Receita por mês', null, ['log'], (c, head) => {
-      head.querySelector('h2').after(h('span', { class: 'tag' }, 'estimado'));
-      // a paid extension = a log row that ends on plan "mensal" with a later expiry; months added x price
-      const byMonth = new Map();
-      D.log.forEach(r => {
-        if (r.new_plan !== 'mensal' || !r.new_expires) return;
-        const ne = new Date(r.new_expires).getTime();
-        if (ne > Date.now() + LIFETIME_MS) return;
-        const base = Math.max(r.old_expires ? new Date(r.old_expires).getTime() : 0, new Date(r.created_at).getTime());
-        const added = (ne - base) / DAY;
-        if (added < 20) return;
-        const k = dayKey(r.created_at).slice(0, 7);
-        byMonth.set(k, (byMonth.get(k) || 0) + Math.max(1, Math.round(added / 30)) * PRICE);
-      });
-      if (!byMonth.size) { c.append(emptyChart('Ainda sem renovações registradas')); c.append(h('p', { class: 'none-line' }, 'Conta aqui toda renovação feita no plano mensal pelo painel.')); return; }
-      const months = [];
-      const d = new Date(); d.setDate(1);
-      for (let i = 11; i >= 0; i--) { const x = new Date(d.getFullYear(), d.getMonth() - i, 1); months.push(x.getFullYear() + '-' + two(x.getMonth() + 1)); }
-      const names = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-      const first = months.findIndex(k => byMonth.has(k));
-      const pts = months.slice(Math.max(0, Math.min(first, 6))).map(k => ({ label: names[Number(k.slice(5)) - 1] + '/' + k.slice(2, 4), value: Math.round((byMonth.get(k) || 0) * 100) / 100 }));
-      c.append(seriesChart('bar', pts, { fmt: brl, fmtShort: v => 'R$ ' + nf(Math.round(v)), aria: 'Receita estimada por mês', height: 210 }));
-      c.append(h('p', { class: 'none-line' }, 'Cada renovação no plano mensal conta ' + brl(PRICE) + ' por mês adicionado, no mês em que foi lançada.'));
-    }));
-
     root.append(card('Registro de alterações', 'últimas 200', ['log'], c => {
       if (!D.log.length) { c.append(h('p', { class: 'none-line' }, 'Nenhuma alteração de licença até agora.')); return; }
       const body = h('tbody');
-      D.log.slice(0, S.shown).forEach(r => body.append(h('tr', null,
+      D.log.slice(0, Math.min(200, S.logShown)).forEach(r => body.append(h('tr', null,
         h('td', { class: 'lead' }, h('div', { class: 'ucell' }, h('div', null, h('b', null, r.action), h('span', null, r.user_email || 'conta removida')))),
         h('td', { 'data-l': 'Quando', class: 'mut num' }, dthm(r.created_at)),
         h('td', { 'data-l': 'Validade', class: 'num' }, (r.old_expires ? fmtExp(r.old_expires) : 'sem data') + ' → ' + (r.new_expires ? fmtExp(r.new_expires) : 'sem data')),
@@ -1124,7 +2240,7 @@ const VIEWS = {
         h('td', { 'data-l': 'Por', class: 'mut' }, r.admin_email || ''))));
       c.append(h('div', { class: 'tablewrap' }, h('table', { class: 'rt' },
         h('thead', null, h('tr', null, ...['Ação e conta', 'Quando', 'Validade', 'Plano', 'Por'].map(t => h('th', { scope: 'col' }, t)))), body)));
-      if (D.log.length > S.shown) c.append(h('div', { class: 'more' }, h('button', { class: 'pill', type: 'button', onclick: () => { S.shown += 60; render(); } }, 'Mostrar mais')));
+      if (Math.min(200, D.log.length) > S.logShown) c.append(h('div', { class: 'more' }, h('button', { class: 'pill', type: 'button', onclick: () => { S.logShown += 50; render(); } }, 'Mostrar mais')));
     }));
     return root;
   },
@@ -1132,11 +2248,14 @@ const VIEWS = {
   /* ---------------------------------------------- 4. app usage */
   usage() {
     const root = h('div', { class: 'stack' });
+    if (!guard(['stats'])) root.append(h('div', { class: 'kpis' },
+      statKpi('Ativos por dia, em média', 'active_users', { avg: true }), statKpi('Minutos tocados', 'minutes'),
+      statKpi('Vezes que ligaram um tom', 'play_start'), statKpi('Aberturas do app', 'app_open')));
     const two = h('div', { class: 'grid g2' });
-    two.append(card('Ativos por dia', 'pessoas que abriram ou tocaram', ['stats'], c => c.append(seriesChart('bar', fillDays('active_users'), { unit: 'ativos', aria: 'Ativos por dia' }))));
+    two.append(card('Ativos por dia', 'pessoas que abriram ou tocaram', ['stats'], c => c.append(seriesChart('bar', fillDays('active_users'), { id: 'us-active', unit: 'ativos', aria: 'Ativos por dia' }))));
     two.append(card('Minutos tocados por dia', null, ['stats'], (c, head) => {
       head.append(h('span', { class: 'total' }, nf(sumDays('minutes')) + ' min'));
-      c.append(seriesChart('line', fillDays('minutes'), { unit: 'min', aria: 'Minutos tocados por dia' }));
+      c.append(seriesChart('line', fillDays('minutes'), { id: 'us-min', unit: 'min', aria: 'Minutos tocados por dia' }));
     }));
     root.append(two);
 
@@ -1150,7 +2269,7 @@ const VIEWS = {
       const map = new Map((D.stats.keys || []).map(k => [k.key, k]));
       const extra = (D.stats.keys || []).map(k => k.key).filter(k => k && !KEYS_ORDER.includes(k));
       const rows = [...KEYS_ORDER, ...extra].map(k => ({ label: k, value: Number(map.get(k)?.minutes) || 0, note: 'min', tip: k + ': ' + plural(Number(map.get(k)?.plays) || 0, 'play', 'plays') }));
-      c.append(hbars(rows, { unit: 'min' }));
+      c.append(hbars(rows, { id: 'us-keys', unit: 'min' }));
     }));
     two2.append(card('Quando tocam', 'minutos por dia da semana e hora, horário de Brasília', ['stats'], c => c.append(heatmap(D.stats.hours || []))));
     root.append(two2);
@@ -1158,12 +2277,12 @@ const VIEWS = {
     const three = h('div', { class: 'grid g2' });
     three.append(card('Aparelhos', 'pessoas que abriram o app', ['stats'], c => {
       const rows = (D.stats.devices || []).map(d => ({ label: d.device || 'outro', value: Number(d.people) || 0 })).sort((a, b) => b.value - a.value);
-      c.append(hbars(rows, { unit: 'pessoas' }));
+      c.append(rows.length <= 5 ? donut(rows, { id: 'us-dev', unit: 'pessoas', centerLabel: 'pessoas' }) : hbars(rows, { id: 'us-dev', unit: 'pessoas' }));
     }));
     three.append(card('Instalado ou navegador', 'como abrem o app', ['stats'], c => {
       const i = D.stats.installed || {};
-      const rows = [{ label: 'Instalado', value: Number(i.standalone) || 0 }, { label: 'Navegador', value: Number(i.browser) || 0 }, { label: 'Offline pronto', value: Number(i.offline_ready) || 0, tip: 'Baixaram as faixas para tocar sem internet' }];
-      c.append(hbars(rows, { unit: 'pessoas' }));
+      c.append(donut([{ label: 'Instalado', value: Number(i.standalone) || 0 }, { label: 'Navegador', value: Number(i.browser) || 0 }], { id: 'us-inst', unit: 'pessoas', centerLabel: 'pessoas' }));
+      c.append(h('p', { class: 'none-line num', style: 'margin-top:8px' }, 'Offline pronto: ' + plural(Number(i.offline_ready) || 0, 'pessoa baixou', 'pessoas baixaram') + ' as faixas para tocar sem internet.'));
     }));
     root.append(three);
     return root;
@@ -1173,11 +2292,12 @@ const VIEWS = {
   marketing() {
     const root = h('div', { class: 'stack' });
     // four measures with very different sizes: small multiples, one scale each, never a shared dual axis
+    if (!guard(['stats'])) root.append(h('div', { class: 'kpis five' }, statKpi('Visitas', 'page_view'), statKpi('Demo ligada', 'demo_on'), statKpi('Demo até o fim', 'demo_end'), statKpi('Cliques no CTA', 'cta_click'), statKpi('Cadastros', 'signup')));
     const multi = h('div', { class: 'grid g2' });
     [['page_view', 'Visitas', 'visitas'], ['demo_on', 'Demo ligada', 'vezes'], ['demo_end', 'Demo até o fim', 'vezes'], ['cta_click', 'Cliques no CTA', 'cliques']].forEach(([f, title, unit]) => {
       multi.append(card(title, 'por dia', ['stats'], (c, head) => {
         head.append(h('span', { class: 'total' }, nf(sumDays(f))));
-        c.append(seriesChart('bar', fillDays(f), { unit, aria: title + ' por dia', height: 150 }));
+        c.append(seriesChart('bar', fillDays(f), { id: 'mk-' + f, unit, aria: title + ' por dia', height: 150 }));
       }));
     });
     root.append(multi);
@@ -1202,10 +2322,13 @@ const VIEWS = {
     root.append(card('Tons testados na demo', 'toques por tom na página de vendas', ['stats'], c => {
       const map = new Map((D.stats.demo_keys || []).map(k => [k.key, Number(k.plays) || 0]));
       const extra = [...map.keys()].filter(k => k && !KEYS_ORDER.includes(k));
-      c.append(hbars([...KEYS_ORDER, ...extra].map(k => ({ label: k, value: map.get(k) || 0 })), { unit: 'toques' }));
+      c.append(hbars([...KEYS_ORDER, ...extra].map(k => ({ label: k, value: map.get(k) || 0 })), { id: 'mk-keys', unit: 'toques' }));
     }));
     return root;
   },
+
+  /* ---------------------------------------------- automations */
+  autos() { return automationsView(); },
 
   /* ---------------------------------------------- 6. settings */
   settings() {
@@ -1294,14 +2417,14 @@ const VIEWS = {
 
     const two = h('div', { class: 'grid g2' });
     two.append(card('Versões em uso', 'última versão aberta por pessoa, nos últimos ' + S.days + ' dias', ['stats'], c => {
-      c.append(hbars((D.stats.builds || []).map(b => ({ label: b.build || 'sem versão', value: Number(b.people) || 0 })), { unit: 'pessoas' }));
+      c.append(hbars((D.stats.builds || []).map(b => ({ label: b.build || 'sem versão', value: Number(b.people) || 0 })), { id: 'hl-builds', unit: 'pessoas' }));
     }));
     two.append(card('Armazenamento das faixas', 'bucket pads', ['stats'], c => {
       const st = D.stats.storage || {};
       const mb = (Number(st.bytes) || 0) / 1048576;
       c.append(h('div', { class: 'grid g2', style: 'gap:10px' },
-        kpi('Arquivos', nf(st.files)),
-        kpi('Tamanho', mb >= 1024 ? (mb / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' GB' : mb.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' MB')));
+        kpi('Arquivos', Number(st.files) || 0),
+        kpi('Tamanho', mb >= 1024 ? mb / 1024 : mb, null, { fmtNum: v => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: mb >= 1024 ? 2 : 1 }) + (mb >= 1024 ? ' GB' : ' MB') })));
     }));
     root.append(two);
 
@@ -1413,6 +2536,14 @@ function openUser(id) {
         ['Origem', u.source || 'não identificada'], ['Último login', u.last_sign_in_at ? dthm(u.last_sign_in_at) : 'nunca'],
       ].map(([k, v]) => h('div', null, h('span', { class: 'k' }, k), h('span', { class: 'v num' }, v)))),
 
+      h('div', { class: 'sect' }, h('h3', null, 'Últimos logins'),
+        E.logins ? h('p', { style: 'font-size:12.5px;color:var(--muted)' }, E.logins)
+          : !D.logins ? h('p', { style: 'font-size:12.5px;color:var(--muted)' }, 'Carregando')
+          : (ls => ls.length ? h('div', { class: 'rows', style: 'grid-template-columns:1fr' }, ls.map(x => h('div', { style: 'border-right:0' },
+              h('span', { class: 'v num' }, dthm(x.created_at) + ', ' + ([x.city, x.region_code].filter(Boolean).join('/') || 'sem localização'), x.new_city ? h('span', { class: 'badge soon', style: 'margin-left:8px' }, 'cidade nova') : null),
+              h('span', { class: 'k' }, [x.device, x.os, x.browser].filter(Boolean).join(', ') || 'aparelho não informado'))))
+            : h('p', { style: 'font-size:12.5px;color:var(--muted)' }, 'Nenhum login registrado para esta conta.'))(D.logins.filter(x => x.user_id === u.id).slice(0, 5))),
+
       h('div', { class: 'sect' }, h('h3', null, 'Pagamento recebido'),
         h('p', { style: 'margin:0 0 8px;font-size:12.5px;color:var(--muted)' }, 'Soma 30 dias e marca o plano como mensal. É o que entra na receita do mês.'),
         h('div', { class: 'btnrow' }, h('button', { class: 'btn sm', type: 'button', onclick: ev => run({ p_action: 'pagamento mensal', p_days: 30, p_plan: 'mensal' }, 'Pagamento registrado: +30 dias no plano mensal.', ev.currentTarget) }, 'Registrar pagamento'))),
@@ -1453,7 +2584,7 @@ function openUser(id) {
   dlg.scrollTop = 0;
 }
 // tap on the backdrop closes either dialog
-['userDlg', 'confirmDlg'].forEach(id => $('#' + id).addEventListener('click', ev => { if (ev.target === ev.currentTarget) ev.currentTarget.close(); }));
+['userDlg', 'autoDlg', 'confirmDlg'].forEach(id => $('#' + id).addEventListener('click', ev => { if (ev.target === ev.currentTarget) ev.currentTarget.close(); }));
 
 /* ------------------------------------------------------------------ gate and boot */
 function gate(title, text, actions, loading) {
@@ -1537,6 +2668,8 @@ window.__demo = function (mode) {
   S.session = { user: { id: 'u0', email: 'demo@kingpad.test' } };
   if (mode === 'empty') {
     D.users = []; D.log = []; D.admins = [{ email: 'demo@kingpad.test', created_at: iso(now) }];
+    D.stats2 = { days: [] };
+    D.geo = { cities: [], visitors: [], states: [], countries: [], logins_total: 0, located: 0 }; D.logins = []; D.autos = []; D.runs = [];
     D.settings = [{ key: 'trial_days', value: 7 }, { key: 'price_label', value: 'R$ 14,90 por mês' }, { key: 'renew_url', value: '' }, { key: 'notice', value: '' }, { key: 'maintenance', value: false }];
     D.stats = { days: [], keys: [], demo_keys: [], devices: [], installed: { standalone: 0, browser: 0, offline_ready: 0 }, hours: [], sources: [], funnel: {}, errors: [], builds: [], retention: { d1: null, d7: null, d30: null }, storage: { files: 0, bytes: 0 } };
   } else {
@@ -1578,13 +2711,39 @@ window.__demo = function (mode) {
       builds: [{ build: '41', people: 58 }, { build: '40', people: 21 }, { build: '39', people: 7 }],
       retention: { d1: 46, d7: 31, d30: null }, storage: { files: 28, bytes: 412 * 1048576 },
     };
-    D.log = Array.from({ length: 34 }, (_, i) => {
-      const at = now - i * 4.3 * DAY - rnd() * DAY, u = D.users[1 + Math.floor(rnd() * 40)];
+    D.log = Array.from({ length: 70 }, (_, i) => {
+      const at = now - i * 2.6 * DAY - rnd() * DAY, u = D.users[1 + Math.floor(rnd() * 40)];
       const isPay = rnd() < .75;
-      return { id: i, created_at: iso(at), user_id: u.id, user_email: u.email, admin_email: 'demo@kingpad.test', action: isPay ? '+30 dias' : pick(['bloquear', 'nota', 'plano mensal', 'tornar vitalício']), old_expires: iso(at + 2 * DAY), new_expires: iso(at + (isPay ? 32 : 2) * DAY), old_plan: rnd() < .3 ? 'teste' : 'mensal', new_plan: 'mensal', note: null };
+      return { id: i, created_at: iso(at), user_id: u.id, user_email: u.email, admin_email: 'demo@kingpad.test', action: isPay ? 'pagamento mensal' : pick(['bloquear', 'nota', 'plano mensal', 'tornar vitalício']), old_expires: iso(at + 2 * DAY), new_expires: iso(at + (isPay ? 32 : 2) * DAY), old_plan: rnd() < .3 ? 'teste' : 'mensal', new_plan: 'mensal', note: null };
     });
     D.settings = [{ key: 'trial_days', value: 7 }, { key: 'price_label', value: 'R$ 14,90 por mês' }, { key: 'renew_url', value: 'https://pay.exemplo.com/kingpad' }, { key: 'notice', value: 'Domingo tem tons novos no app.' }, { key: 'maintenance', value: false }];
     D.admins = [{ email: 'demo@kingpad.test', created_at: iso(now - 40 * DAY) }, { email: 'socio@kingpad.test', created_at: iso(now - 12 * DAY) }];
+    const CITY = [['Belo Horizonte', 'MG', -19.92, -43.94, 21], ['Contagem', 'MG', -19.93, -44.05, 9], ['Divinópolis', 'MG', -20.14, -44.89, 5], ['São Paulo', 'SP', -23.55, -46.63, 14], ['Campinas', 'SP', -22.91, -47.06, 4],
+      ['Rio de Janeiro', 'RJ', -22.91, -43.17, 8], ['Salvador', 'BA', -12.97, -38.5, 5], ['Recife', 'PE', -8.05, -34.88, 4], ['Fortaleza', 'CE', -3.73, -38.52, 3], ['Manaus', 'AM', -3.12, -60.02, 2], ['Belém', 'PA', -1.45, -48.5, 2],
+      ['Brasília', 'DF', -15.79, -47.88, 4], ['Goiânia', 'GO', -16.68, -49.26, 3], ['Curitiba', 'PR', -25.43, -49.27, 3], ['Porto Alegre', 'RS', -30.03, -51.23, 2], ['Cuiabá', 'MT', -15.6, -56.1, 1], ['Lisboa', 'Lisboa', 38.72, -9.14, 2]];
+    const cities = CITY.map(([city, uf, lat, lon, n]) => ({ city, region: uf, region_code: uf, country: city === 'Lisboa' ? 'Portugal' : 'Brazil', lat, lon, accounts: n, signups: Math.round(n * .35), installs: Math.round(n * .55), paying: Math.round(n * .3), logins: n * 6 + Math.floor(rnd() * 20) }));
+    const st = new Map();
+    cities.forEach(c => { const x = st.get(c.region_code) || { state: c.region_code, accounts: 0, signups: 0, installs: 0, paying: 0, logins: 0 }; ['accounts', 'signups', 'installs', 'paying', 'logins'].forEach(k => x[k] += c[k]); st.set(c.region_code, x); });
+    D.stats2 = { days };
+    D.geo = { cities, states: [...st.values()].sort((a, b) => b.accounts - a.accounts), countries: [{ country: 'Brazil', accounts: 90 }, { country: 'Portugal', accounts: 2 }],
+      visitors: CITY.slice(0, 14).map(([city, uf, lat, lon, n]) => ({ city, region_code: uf, lat, lon, visitors: n * 23 + Math.floor(rnd() * 40) })), logins_total: 612, located: 571 };
+    D.logins = Array.from({ length: 138 }, (_, i) => {
+      const u = D.users[Math.floor(rnd() * 40)], c = pick(CITY), dev = pick(['iPhone', 'iPhone', 'Android', 'desktop']);
+      return { id: 1000 - i, created_at: iso(now - i * 3.1 * 36e5 - rnd() * 36e5), user_id: u.id, email: u.email, name: u.name, ip: '177.' + Math.floor(rnd() * 255) + '.' + Math.floor(rnd() * 255) + '.' + Math.floor(rnd() * 255),
+        city: rnd() < .06 ? null : c[0], region: c[1], region_code: c[1], country: c[0] === 'Lisboa' ? 'Portugal' : 'Brazil', lat: c[2], lon: c[3], isp: pick(['Claro NXT', 'Vivo', 'TIM', 'Oi Fibra', 'Algar Telecom']),
+        device: dev, os: dev === 'iPhone' ? 'iOS 18' : dev === 'Android' ? 'Android 15' : 'macOS', browser: dev === 'iPhone' ? 'Safari' : 'Chrome', standalone: rnd() < .55, provider: u.provider, build: pick(['41', '41', '40']), new_city: rnd() < .08 };
+    });
+    D.autos = [
+      { id: 1, name: 'Boas vindas', trigger: 'signup', offset_hours: 0, channel: 'in_app', title: 'Bem vindo, {nome}', body: 'Escolha um tom e aperte ON. Depois coloque o King Pad na tela inicial para abrir em tela cheia.', cta_label: null, cta_url: null, active: true, conditions: [], match: 'all', repeat_days: null },
+      { id: 2, name: 'Teste acabando', trigger: 'trial_ending', offset_hours: 72, channel: 'in_app', title: 'Seu teste termina em {dias} dias', body: 'Para continuar tocando sem interrupção, assine por {preco}.', cta_label: 'Assinar', cta_url: '../#oferta', active: true, conditions: [], match: 'all', repeat_days: null },
+      { id: 3, name: 'Sumiu do app', trigger: 'inactive', offset_hours: 336, channel: 'whatsapp', title: '{nome}, sentimos sua falta', body: 'Tem tom novo esperando por você.', cta_label: null, cta_url: null, active: false, conditions: [], match: 'all', repeat_days: null },
+      { id: 4, name: 'Teste acabando e usou bastante', trigger: 'custom', offset_hours: 0, channel: 'in_app', title: '{nome}, você já tocou bastante', body: 'Seu teste termina em {dias} dias. Garanta o acesso por {preco}.', cta_label: 'Assinar', cta_url: '../#oferta', active: true,
+        conditions: [{ field: 'plano', op: 'eq', value: 'teste' }, { field: 'dias_para_vencer', op: 'lte', value: '2' }, { field: 'minutos_tocados', op: 'gt', value: '30' }], match: 'all', repeat_days: null },
+      { id: 5, name: 'Assinante sumido', trigger: 'custom', offset_hours: 0, channel: 'email', title: 'Faz tempo que você não toca', body: 'Abra o King Pad e confira os tons novos.', cta_label: null, cta_url: null, active: false,
+        conditions: [{ field: 'plano', op: 'eq', value: 'mensal' }, { field: 'dias_sem_usar', op: 'gte', value: '14' }], match: 'any', repeat_days: 30 },
+    ];
+    D.runs = Array.from({ length: 46 }, (_, i) => { const a = pick(D.autos), u = D.users[1 + Math.floor(rnd() * 50)], ok = a.channel === 'in_app';
+      return { id: 500 - i, created_at: iso(now - i * 5 * 36e5), automation: a.name, trigger: a.trigger, channel: a.channel, status: ok ? 'delivered' : 'waiting_provider', email: u.email, name: u.name, read_at: ok && rnd() < .6 ? iso(now - i * 4 * 36e5) : null }; });
   }
   ALL.forEach(n => { E[n] = null; });
   S.loadedAt = new Date();

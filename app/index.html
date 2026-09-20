@@ -122,6 +122,7 @@
   }
   .fill::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(0deg, rgba(8, 12, 20, .45), rgba(8, 12, 20, 0) 55%); opacity: 0; transition: opacity 600ms ease; }
   .app.is-on .fill::after { opacity: 1; animation-play-state: running; }
+  .app.no-flow .fill::after, .app.no-flow .fill::before { display: none; }
   .app.is-on .fill::before { opacity: 1; }
   .app.is-on .fader.master .fill::after { opacity: .5; }
   .fader:nth-child(2) .fill::after { animation-delay: -2.3s; }
@@ -425,6 +426,11 @@
         <input type="checkbox" id="keepAwake" class="switch" role="switch">
       </label>
 
+      <label class="menu-item" for="flowColors">
+        <span><b>Cores nos faders</b><small>Animação de cores enquanto o pad está ligado</small></span>
+        <input type="checkbox" id="flowColors" class="switch" role="switch">
+      </label>
+
       <button class="menu-item" id="resetLevels" type="button">
         <span><b>Restaurar volumes</b><small>Volta todos os faders para 80 e tira os mutes</small></span>
       </button>
@@ -469,14 +475,14 @@ const CFG = {
   supabaseKey: 'sb_publishable_uu8BHH9W8FIZ5IylFURbyw_iOaOi40P',   // publishable key, safe in the browser
   bucket: 'pads',
   // Semitone correction per stem. "D/2": the CAM 2 file delivered in the D folder was recorded in C.
-  transpose: { 'D/2': 2 },
+  headroom: .7, transpose: { 'D/2': 2 },
   google: true,     // Google provider enabled in Supabase Auth (OAuth client in Google Cloud project "Pads Login")
   stems: 4,
   fade: 0.9,        // seconds, fade-in of the new key
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.20';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-20.21';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -490,9 +496,10 @@ const state = {
   master: saved.master ?? .8,
   key: saved.key ?? null,   // selected key
   keepAwake: saved.keepAwake ?? true,
+  flow: saved.flow ?? true,
   on: false,                // sound on/off
 };
-const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ levels: state.levels, mutes: state.mutes, master: state.master, key: state.key, keepAwake: state.keepAwake })); } catch {} };
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ levels: state.levels, mutes: state.mutes, master: state.master, key: state.key, keepAwake: state.keepAwake, flow: state.flow })); } catch {} };
 
 const library = {};     // key -> [url | null] per stem
 const sb = supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
@@ -567,7 +574,8 @@ function ensureAudio() {
   if (ctx) { if (ctx.state !== 'running') ctx.resume(); return; }
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}  // iOS: play even with the mute switch on
   const AC = window.AudioContext || window.webkitAudioContext;
-  try { ctx = new AC({ sampleRate: 44100, latencyHint: 'playback' }); } catch { ctx = new AC(); }   // same rate as the stems: no resampling drift
+  // Native hardware rate: forcing another rate makes phones resample twice and crackle. 'playback' asks for large, glitch-free buffers.
+  try { ctx = new AC({ latencyHint: 'playback' }); } catch { ctx = new AC(); }
   masterGain = ctx.createGain();
   masterGain.connect(ctx.destination);
   for (let i = 0; i < CFG.stems; i++) {
@@ -582,7 +590,7 @@ const curve = (v) => v * v;
 function applyGains(instant) {
   if (!ctx) return;
   const set = (param, v) => instant ? param.setValueAtTime(v, ctx.currentTime) : param.setTargetAtTime(v, ctx.currentTime, .02);
-  set(masterGain.gain, curve(state.master));
+  set(masterGain.gain, curve(state.master) * CFG.headroom);   // the four stems add up; headroom keeps key changes and loop crossfades below 0 dBFS
   stemGains.forEach((g, i) => set(g.gain, state.mutes[i] ? 0 : curve(state.levels[i])));
 }
 
@@ -810,10 +818,11 @@ function prewarm() {
   if (!user || navigator.connection?.saveData) return;
   if (!navigator.onLine) return;
   warm.forEach((el) => { el.removeAttribute('src'); el.load(); });
-  warm = Object.values(library).flat().filter(Boolean).map((url) => {
+  // Only the connection and the header: buffering 28 files at once starved the stems that were playing.
+  warm = Object.values(library).flat().filter((url) => url && !offline[url]).map((url) => {
     const el = new Audio();
     el.crossOrigin = 'anonymous';
-    el.preload = 'auto';
+    el.preload = 'metadata';
     el.src = url;
     return el;
   });
@@ -961,6 +970,7 @@ fadersEl.append(masterEl);
 
 function render() {
   $('.app').classList.toggle('is-on', state.on);
+  $('.app').classList.toggle('no-flow', !state.flow);
   for (const [key] of KEYS) {
     keyBtns[key].setAttribute('aria-pressed', String(state.key === key));
     keyBtns[key].classList.toggle('idle', state.key === key && !state.on);
@@ -1178,6 +1188,7 @@ $('#getApp').addEventListener('click', async () => {
 function renderSettings() {
   $('#getApp').hidden = isStandalone();   // already installed: nothing to offer
   $('#keepAwake').checked = state.keepAwake;
+  $('#flowColors').checked = state.flow;
   $('#updateState').textContent = `Versão ${BUILD}`;
   $('#installState').textContent = isStandalone() ? 'Já está instalado neste aparelho' : 'Abre em tela cheia, como um app';
   $('#installNow').hidden = !installEvent;
@@ -1201,6 +1212,11 @@ $('#keepAwake').addEventListener('change', (e) => {
   state.keepAwake = e.target.checked;
   save();
   setWake(state.on && state.keepAwake);
+});
+$('#flowColors').addEventListener('change', (e) => {
+  state.flow = e.target.checked;
+  save();
+  render();
 });
 $('#resetLevels').addEventListener('click', () => {
   state.levels = Array(CFG.stems).fill(.8);

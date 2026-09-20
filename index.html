@@ -431,10 +431,16 @@ function mergeLibrary() {
 /* ---------- Upload ---------- */
 const PT = { do: 'C', re: 'D', mi: 'E', fa: 'F', sol: 'G', la: 'A', si: 'B' };
 function parseKey(folder) {
-  const s = folder.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
-  const word = s.split(/[\s_\-.()]+/)[0];
-  if (PT[word]) return PT[word];
-  return /^[a-g]$/.test(word) ? word.toUpperCase() : null;
+  const words = folder.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[\s_\-.()\[\]]+/).filter(Boolean);
+  for (const w of words) if (PT[w]) return PT[w];
+  const letter = words.find((w) => /^[a-g]$/.test(w));   // "C", "Tom C", "Pad G"; sharps/flats are ignored
+  return letter ? letter.toUpperCase() : null;
+}
+// Nearest folder in the path that names a key (handles "Pads/Tom C/vias/1.mp3").
+function keyFromPath(path) {
+  const dirs = path.split('/').slice(0, -1).reverse();
+  for (const d of dirs) { const k = parseKey(d); if (k) return k; }
+  return null;
 }
 
 // Slot by the number in the file name (1.mp3, "via 2.mp3"); anything else fills the free slots in name order.
@@ -466,8 +472,7 @@ async function handleFolder(fileList) {
   const byKey = {};
   for (const f of fileList) {
     if (!AUDIO_RE.test(f.name)) continue;
-    const parts = (f.webkitRelativePath || '').split('/');
-    const key = parseKey(parts[parts.length - 2] || '');
+    const key = keyFromPath(f.webkitRelativePath || '');
     if (key) (byKey[key] ||= []).push(f);
   }
   const keys = Object.keys(byKey);

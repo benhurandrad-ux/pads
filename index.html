@@ -51,6 +51,7 @@
   header h1 { font-size: 16px; font-weight: 650; letter-spacing: -.01em; margin: 0; }
   #status { font-size: 13px; color: var(--muted); margin-right: auto; }
   #status b { color: var(--text); font-weight: 600; }
+  #offlineInfo { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pill {
     appearance: none; border: 1px solid var(--line); background: var(--panel); color: var(--text);
     height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer;
@@ -124,28 +125,6 @@
   .key.empty { opacity: .35; }
   .key.idle { background: var(--panel); border-color: var(--accent); box-shadow: none; }
   .key.idle span { color: var(--muted); }
-
-  /* Files dialog */
-  dialog {
-    border: 1px solid var(--line); background: #0f1521; color: var(--text); border-radius: 22px; padding: 0;
-    width: min(92vw, 520px); max-height: min(88dvh, 560px); overflow: hidden;
-    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .8);
-    opacity: 1; transform: none;
-    transition: opacity 200ms ease, transform 260ms var(--ease-out);
-  }
-  @starting-style { dialog[open] { opacity: 0; transform: translateY(12px) scale(.98); } }
-  dialog::backdrop { background: rgba(4, 7, 12, .66); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
-  .sheet { display: grid; grid-template-rows: auto 1fr; max-height: inherit; }
-  .sheet-head { display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px; border-bottom: 1px solid var(--line); }
-  .sheet-head h2 { font-size: 16px; margin: 0 auto 0 0; font-weight: 650; }
-  .sheet-body { overflow-y: auto; padding: 12px 16px 16px; -webkit-overflow-scrolling: touch; }
-  .hint { font-size: 12.5px; line-height: 1.45; color: var(--muted); margin: 0 0 12px; }
-  .hint code { color: var(--text); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
-  .row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
-  .row .k { width: 38px; height: 38px; border-radius: 11px; background: var(--panel); display: grid; place-items: center; font-weight: 700; font-size: 17px; }
-  .row .info { margin-right: auto; font-size: 13px; line-height: 1.3; }
-  .row .info small { display: block; color: var(--muted); font-size: 11.5px; }
-  .row .pill { height: 32px; padding: 0 12px; font-size: 12.5px; }
 
   /* Auth screen */
   #auth {
@@ -233,7 +212,7 @@
   <header>
     <h1>Pads</h1>
     <div id="status">Carregando…</div>
-    <button class="pill" id="openFiles" hidden>Faixas</button>
+    <span id="offlineInfo"></span>
     <button class="pill ghost" id="logout">Sair</button>
     <button class="power" id="power" aria-pressed="false" aria-label="Ligar ou desligar o som">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 3v9"/><path d="M6.3 7.2a8 8 0 1 0 11.4 0"/></svg>
@@ -244,21 +223,6 @@
   <div class="keys" id="keys"></div>
 </div>
 
-<dialog id="files" aria-labelledby="filesTitle">
-  <div class="sheet">
-    <div class="sheet-head">
-      <h2 id="filesTitle">Atualizar faixas</h2>
-      <button class="pill primary" id="pickFolder">Enviar pasta</button>
-      <button class="pill ghost" id="closeFiles">Fechar</button>
-    </div>
-    <div class="sheet-body">
-      <p class="hint" id="filesHint"></p>
-      <div id="rows"></div>
-    </div>
-  </div>
-</dialog>
-<input type="file" id="folderInput" webkitdirectory multiple hidden>
-<input type="file" id="filesInput" accept="audio/*,.mp3,.wav,.m4a" multiple hidden>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -269,13 +233,15 @@ const CFG = {
   supabaseUrl: 'https://enytnepolxsyabsxdxyn.supabase.co',
   supabaseKey: 'sb_publishable_uu8BHH9W8FIZ5IylFURbyw_iOaOi40P',   // publishable key, safe in the browser
   bucket: 'pads',
-  admins: ['benhurandrad@gmail.com'],
+  // Semitone correction per stem. "D/2": the CAM 2 file delivered in the D folder was recorded in C.
+  transpose: { 'D/2': 2 },
   google: false,    // flip to true once the Google provider is enabled in Supabase Auth
   stems: 4,
   fade: 0.9,        // seconds, fade-in of the new key
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
+const BUILD = '2026-09-20.9';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -295,7 +261,6 @@ const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ levels: 
 const library = {};     // key -> [url | null] per stem
 const sb = supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
 let user = null;
-const isAdmin = () => !!user && CFG.admins.includes((user.email || '').toLowerCase());
 let libraryReady = false;
 const $ = (s) => document.querySelector(s);
 const statusEl = $('#status');
@@ -307,7 +272,8 @@ let ctx, masterGain, stemGains = [], pairs = [], wakeLock = null;
 function ensureAudio() {
   if (ctx) { if (ctx.state !== 'running') ctx.resume(); return; }
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}  // iOS: play even with the mute switch on
-  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const AC = window.AudioContext || window.webkitAudioContext;
+  try { ctx = new AC({ sampleRate: 44100, latencyHint: 'playback' }); } catch { ctx = new AC(); }   // same rate as the stems: no resampling drift
   masterGain = ctx.createGain();
   masterGain.connect(ctx.destination);
   for (let i = 0; i < CFG.stems; i++) {
@@ -335,14 +301,20 @@ function ramp(param, to, seconds) {
 
 // One set of synced <audio> elements (streamed, so long files don't blow up phone memory).
 class Voice {
-  constructor(urls) {
+  constructor(urls, key) {
     this.gen = 0;
+    this.key = key;
     this.parts = urls.map((url, i) => {
       if (!url) return null;
       const el = new Audio();
       el.crossOrigin = 'anonymous';
       el.preload = 'auto';
-      el.src = url;
+      el.src = offline[url] || url;
+      const semis = CFG.transpose[`${this.key}/${i + 1}`];
+      if (semis) {   // pads have no tempo, so shifting pitch through the playback rate is transparent
+        el.preservesPitch = el.webkitPreservesPitch = el.mozPreservesPitch = false;
+        el.defaultPlaybackRate = el.playbackRate = 2 ** (semis / 12);
+      }
       const src = ctx.createMediaElementSource(el);
       const gain = ctx.createGain();
       gain.gain.value = 0;
@@ -384,9 +356,9 @@ class Voice {
 
 // Two voices ping-pong with a crossfade at the end of the track: seamless loop even with MP3 padding.
 class LoopPair {
-  constructor(urls) {
-    this.active = new Voice(urls);
-    this.spare = new Voice(urls);
+  constructor(urls, key) {
+    this.active = new Voice(urls, key);
+    this.spare = new Voice(urls, key);
     this.dead = false;
     this.swapping = false;
     for (const v of [this.active, this.spare]) {
@@ -450,7 +422,7 @@ function startSound() {
   ensureAudio();
   pairs.forEach((p) => p.kill());
   // One loop per stem: stems can have different lengths and each one wraps around on its own.
-  pairs = urls.map((url, i) => url && new LoopPair(urls.map((u, j) => (j === i ? u : null)))).filter(Boolean);
+  pairs = urls.map((url, i) => url && new LoopPair(urls.map((u, j) => (j === i ? u : null)), state.key)).filter(Boolean);
   pairs.forEach((p) => p.start());
   state.on = true;
   setWake(true);
@@ -475,7 +447,6 @@ function togglePower() {
 
 /* ---------- Library (Supabase Storage) ---------- */
 const bucket = () => sb.storage.from(CFG.bucket);
-const stemFiles = {};   // key -> every object path that belongs to it (used by "Limpar")
 const publicUrl = (folder, name, v) =>
   `${CFG.supabaseUrl}/storage/v1/object/public/${CFG.bucket}/${encodeURIComponent(folder)}/${encodeURIComponent(name)}?v=${v}`;
 
@@ -484,24 +455,23 @@ const publicUrl = (folder, name, v) =>
 async function loadLibrary() {
   const { data: root } = await bucket().list('', { limit: 200 });
   const folders = (root || []).filter((f) => !f.id && parseKey(f.name));
-  const next = {}, stamp = {}, paths = {};
-  for (const [key] of KEYS) { next[key] = Array(CFG.stems).fill(null); stamp[key] = Array(CFG.stems).fill(-1); paths[key] = []; }
+  const next = {}, stamp = {};
+  for (const [key] of KEYS) { next[key] = Array(CFG.stems).fill(null); stamp[key] = Array(CFG.stems).fill(-1); }
   await Promise.all(folders.map(async (folder) => {
     const key = parseKey(folder.name);
     const { data } = await bucket().list(folder.name, { limit: 100 });
     const files = (data || []).filter((f) => f.id && (AUDIO_RE.test(f.name) || /^\d+$/.test(f.name)));
-    paths[key].push(...(data || []).filter((f) => f.id).map((f) => `${folder.name}/${f.name}`));
     assignSlots(files).forEach((f, i) => {
       if (!f) return;
       const v = Date.parse(f.updated_at || f.created_at || '') || 0;
       if (v > stamp[key][i]) { stamp[key][i] = v; next[key][i] = publicUrl(folder.name, f.name, v); }   // newest wins
     });
   }));
-  for (const [key] of KEYS) { library[key] = next[key]; stemFiles[key] = paths[key]; }
+  for (const [key] of KEYS) library[key] = next[key];
   libraryReady = true;
   render();
-  renderRows();
   prewarm();
+  cacheStems();
 }
 
 // Buffers the start of every stem ahead of time (the browser shares the media cache per URL),
@@ -519,7 +489,41 @@ function prewarm() {
   });
 }
 
-/* ---------- Upload ---------- */
+/* ---------- Offline ---------- */
+// Every stem is saved on the device after login (Cache Storage), so the pads keep working if the
+// internet drops. Cached stems play from the local copy.
+const offline = {};   // remote url -> local object url
+let caching = false;
+async function cacheStems() {
+  if (!user || caching || !('caches' in window) || navigator.connection?.saveData) return;
+  caching = true;
+  const info = $('#offlineInfo');
+  try {
+    const cache = await caches.open('pads-stems-v1');
+    const mine = (k) => (library[k] || []).filter(Boolean);
+    const urls = [...mine(state.key), ...KEYS.flatMap(([k]) => (k === state.key ? [] : mine(k)))];
+    for (const req of await cache.keys()) if (!urls.includes(req.url)) await cache.delete(req);   // replaced stems
+    let done = 0;
+    for (const url of urls) {
+      try {
+        let res = await cache.match(url);
+        if (!res) {
+          const r = await fetch(url, { mode: 'cors' });
+          if (!r.ok) throw new Error(r.status);
+          await cache.put(url, r.clone());
+          res = r;
+        }
+        if (!offline[url]) offline[url] = URL.createObjectURL(await res.blob());
+        done++;
+      } catch {}
+      info.textContent = done === urls.length ? 'Offline ok' : `Baixando ${done}/${urls.length}`;
+    }
+    try { navigator.storage?.persist?.(); } catch {}
+  } finally { caching = false; }
+}
+window.addEventListener('online', cacheStems);
+
+/* ---------- Folder and file naming ---------- */
 const PT = { do: 'C', re: 'D', mi: 'E', fa: 'F', sol: 'G', la: 'A', si: 'B' };
 function parseKey(folder) {
   const words = folder.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[\s_\-.()\[\]]+/).filter(Boolean);
@@ -528,12 +532,6 @@ function parseKey(folder) {
   return letter ? letter.toUpperCase() : null;
 }
 // Nearest folder in the path that names a key (handles "Pads/Tom C/vias/1.mp3").
-function keyFromPath(path) {
-  const dirs = path.split('/').slice(0, -1).reverse();
-  for (const d of dirs) { const k = parseKey(d); if (k) return k; }
-  return null;
-}
-
 // Slot by the number in the file name (1.mp3, "via 2.mp3"); anything else fills the free slots in name order.
 function assignSlots(files) {
   const slots = Array(CFG.stems).fill(null), rest = [];
@@ -544,62 +542,6 @@ function assignSlots(files) {
   }
   for (const f of rest) { const i = slots.indexOf(null); if (i < 0) break; slots[i] = f; }
   return slots;
-}
-
-let uploading = false;
-async function storeFiles(byKey) {
-  if (uploading) throw new Error('busy');
-  uploading = true;
-  const jobs = [];
-  for (const [key, files] of Object.entries(byKey)) assignSlots(files).forEach((f, i) => { if (f) jobs.push([`${key}/${i + 1}`, f]); });
-  let done = 0;
-  try {
-    for (const [path, file] of jobs) {
-      toast(`Enviando ${done + 1} de ${jobs.length}…`, true);
-      const { error } = await bucket().upload(path, file, { upsert: true, contentType: file.type || 'audio/mpeg', cacheControl: '3600' });
-      if (error) throw error;
-      done++;
-    }
-  } finally {
-    uploading = false;
-    await loadLibrary();
-  }
-  return done;
-}
-
-async function handleFolder(fileList) {
-  const byKey = {};
-  for (const f of fileList) {
-    if (!AUDIO_RE.test(f.name)) continue;
-    const key = keyFromPath(f.webkitRelativePath || '');
-    if (key) (byKey[key] ||= []).push(f);
-  }
-  const keys = Object.keys(byKey);
-  if (!keys.length) return toast('Não achei as pastas dos tons. Use pastas C, D, E, F, G, A, B com os arquivos 1 a 6 dentro.');
-  try {
-    const n = await storeFiles(byKey);
-    toast(`${n} faixas enviadas em ${keys.length} ${keys.length > 1 ? 'tons' : 'tom'}: ${keys.sort().join(', ')}`);
-  } catch (e) { toast(uploadError(e)); }
-}
-
-async function handleKeyFiles(key, fileList) {
-  const files = [...fileList].filter((f) => AUDIO_RE.test(f.name));
-  if (!files.length) return;
-  try {
-    const n = await storeFiles({ [key]: files });
-    toast(`${key}: ${n} ${n > 1 ? 'faixas enviadas' : 'faixa enviada'}`);
-  } catch (e) { toast(uploadError(e)); }
-}
-
-const uploadError = (e) => e?.message === 'busy' ? 'Já tem um envio em andamento.'
-  : /row-level|policy|unauthor/i.test(e?.message || '') ? 'Sem permissão para enviar. Entre com a conta de administrador.'
-  : `Não consegui enviar: ${e?.message || 'erro de rede'}`;
-
-async function clearKey(key) {
-  if (state.key === key && state.on) stopSound();   // stop before its files go away
-  const { error } = stemFiles[key]?.length ? await bucket().remove(stemFiles[key]) : {};
-  if (error) toast(uploadError(error));
-  await loadLibrary();
 }
 
 /* ---------- UI ---------- */
@@ -702,47 +644,6 @@ function render() {
   powerLabel.textContent = state.on ? 'ON' : 'OFF';
 }
 
-/* Files dialog */
-const dlg = $('#files'), rowsEl = $('#rows'), folderInput = $('#folderInput'), filesInput = $('#filesInput');
-const canPickFolder = 'webkitdirectory' in HTMLInputElement.prototype && !/iPhone|iPad|iPod/.test(navigator.userAgent);
-let pendingKey = null;
-
-$('#pickFolder').hidden = !canPickFolder;
-$('#filesHint').innerHTML = (canPickFolder
-  ? `Escolha a pasta que tem as subpastas dos tons (<code>C D E F G A B</code>), cada uma com as ${CFG.stems} faixas. Ou envie tom por tom abaixo.`
-  : `Envie tom por tom: toque em Enviar e selecione as ${CFG.stems} faixas do tom.`)
-  + ` As faixas entram na ordem do número no nome do arquivo (1 a ${CFG.stems}) e ficam disponíveis para todo mundo que abrir o app.`;
-
-function renderRows() {
-  rowsEl.innerHTML = '';
-  for (const [key, name] of KEYS) {
-    const total = library[key]?.filter(Boolean).length || 0;
-    const row = document.createElement('div');
-    row.className = 'row';
-    row.innerHTML = `<div class="k">${key}</div><div class="info">${name}<small>${total} de ${CFG.stems} faixas</small></div>`;
-    if (total) {
-      const del = document.createElement('button');
-      del.className = 'pill ghost';
-      del.textContent = 'Limpar';
-      del.addEventListener('click', () => clearKey(key));
-      row.append(del);
-    }
-    const up = document.createElement('button');
-    up.className = 'pill';
-    up.textContent = 'Enviar';
-    up.addEventListener('click', () => { pendingKey = key; filesInput.value = ''; filesInput.click(); });
-    row.append(up);
-    rowsEl.append(row);
-  }
-}
-
-$('#openFiles').addEventListener('click', () => { renderRows(); dlg.showModal(); });
-$('#closeFiles').addEventListener('click', () => dlg.close());
-dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
-$('#pickFolder').addEventListener('click', () => { folderInput.value = ''; folderInput.click(); });
-folderInput.addEventListener('change', () => handleFolder(folderInput.files));
-filesInput.addEventListener('change', () => { if (pendingKey) handleKeyFiles(pendingKey, filesInput.files); });
-
 let toastTimer;
 function toast(msg, sticky) {
   const t = $('#toast');
@@ -804,12 +705,24 @@ $('#logout').addEventListener('click', async () => { if (state.on) stopSound(); 
 function applySession(session) {
   user = session?.user || null;
   authEl.hidden = !!user;
-  $('#openFiles').hidden = !isAdmin();
   if (!user && state.on) stopSound();
-  if (user) { $('#authPass').value = ''; say(''); if (libraryReady && !warm.length) prewarm(); }
+  if (user) { $('#authPass').value = ''; say(''); if (libraryReady) { if (!warm.length) prewarm(); cacheStems(); } }
   render();
 }
 sb.auth.onAuthStateChange((_event, session) => applySession(session));
+
+// Forced update: when version.txt differs from this build, reload with a cache-busting URL (never while playing).
+async function checkVersion() {
+  try {
+    const remote = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: 'no-store' })).text()).trim();
+    if (!remote || remote === BUILD || state.on) return;
+    if (new URLSearchParams(location.search).get('v') === remote) return;   // already tried, avoid a reload loop
+    location.replace(`${location.pathname}?v=${encodeURIComponent(remote)}`);
+  } catch {}
+}
+checkVersion();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkVersion(); });
+setInterval(checkVersion, 5 * 60 * 1000);
 
 render();
 sb.auth.getSession().then(({ data }) => applySession(data.session));

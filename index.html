@@ -215,6 +215,24 @@
     .card { padding: 32px 28px; }
   }
 
+  /* 6b. Install on the home screen */
+  .install__grid { margin-top: 40px; display: grid; gap: 16px; }
+  .install .lead { margin-top: 16px; }
+  .install__os { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .install__os svg { width: 28px; height: 28px; margin: 0; flex: none; }
+  .install__os svg path, .install__os svg rect { fill: none; stroke: var(--text); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .install__os svg .dot { stroke-width: 2.4; }
+  .install__os .hud { margin-left: auto; }
+  .install ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: passo; }
+  .install li { counter-increment: passo; display: grid; grid-template-columns: 28px 1fr; gap: 12px; color: var(--muted); font-size: 1rem; }
+  .install li::before {
+    content: counter(passo); width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent-soft, rgba(76, 141, 255, .18)); color: var(--text); font-size: .8125rem; font-weight: 600;
+  }
+  .install li b { color: var(--text); font-weight: 600; }
+  .install__note { margin-top: 24px; color: var(--muted); font-size: var(--fs-small); max-width: 64ch; }
+  @media (min-width: 900px) { .install__grid { grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 56px; } }
+
   /* 4. Turn */
   .turn { text-align: center; }
   .turn__svg { width: 100%; max-width: 640px; height: auto; margin-inline: auto; overflow: visible; }
@@ -471,6 +489,7 @@
       <a href="#demo">ouvir o pad</a>
       <a href="#como-funciona">como funciona</a>
       <a href="#oferta">preço</a>
+      <a href="#instalar">instalar</a>
       <a href="#perguntas">perguntas</a>
     </nav>
     <a class="nav__login" id="navLogin" href="app/">Entrar</a>
@@ -588,6 +607,43 @@
           <p>Mudou a música, toque no tom novo. Ele entra em cerca de 0,1 segundo, com transição suave, sem corte e sem clique.</p>
         </li>
       </ol>
+    </div>
+  </section>
+
+  <!-- 6b. Install on the home screen -->
+  <section class="section install" id="instalar">
+    <div class="container">
+      <h2 class="h2 reveal">na tela inicial, como um app</h2>
+      <p class="lead reveal">Não tem loja nem download pesado. Você adiciona o King Pad à tela inicial uma vez e ele passa a abrir em tela cheia, com o ícone do P.</p>
+      <div class="install__grid">
+        <article class="card reveal">
+          <div class="install__os">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3.5M8 7l4-4 4 4M7 10.5H6a2 2 0 0 0-2 2V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6.5a2 2 0 0 0-2-2h-1"/></svg>
+            <h3 class="h3">iphone e ipad</h3>
+            <span class="hud">safari</span>
+          </div>
+          <ol>
+            <li><span>Abra <b>pad.benhurandrade.com.br/app</b> no <b>Safari</b> e entre na sua conta.</span></li>
+            <li><span>Toque no botão <b>Compartilhar</b>, o quadrado com a seta para cima.</span></li>
+            <li><span>Role a lista e toque em <b>Adicionar à Tela de Início</b>.</span></li>
+            <li><span>Confirme em <b>Adicionar</b>. O ícone do King Pad aparece junto dos seus apps.</span></li>
+          </ol>
+        </article>
+        <article class="card reveal">
+          <div class="install__os">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path class="dot" d="M15.5 6.5h.01M15.5 9h.01M15.5 11.5h.01"/></svg>
+            <h3 class="h3">android</h3>
+            <span class="hud">chrome</span>
+          </div>
+          <ol>
+            <li><span>Abra <b>pad.benhurandrade.com.br/app</b> no <b>Chrome</b> e entre na sua conta.</span></li>
+            <li><span>Toque nos <b>três pontinhos</b>, no canto de cima da tela.</span></li>
+            <li><span>Toque em <b>Adicionar à tela inicial</b>. Em alguns aparelhos aparece como <b>Instalar app</b>.</span></li>
+            <li><span>Confirme em <b>Instalar</b>. O King Pad vai para a tela inicial e para a lista de apps.</span></li>
+          </ol>
+        </article>
+      </div>
+      <p class="install__note reveal">Abra o app uma vez com internet para ele guardar as faixas no aparelho. Depois disso, o pad continua tocando mesmo se a rede cair. Dentro do app, em Configurações, tem o mesmo passo a passo.</p>
     </div>
   </section>
 

@@ -187,6 +187,35 @@
   .acct-actions .btn { margin: 0; }
   .btn.danger { background: transparent; border-color: rgba(229, 72, 77, .5); color: #ff8a8d; }
   .btn.danger.armed { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .row-btn { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+  .chev { font-size: 20px; line-height: 1; color: var(--muted); }
+  .menu { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .menu-item {
+    appearance: none; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px;
+    padding: 10px 14px; background: transparent; border: 0; color: var(--text); text-align: left; cursor: pointer; font: inherit;
+    transition: background-color 200ms ease;
+  }
+  .menu > * + * { border-top: 1px solid var(--line); }
+  .menu-item:active { background: var(--panel); }
+  .menu-item b { display: block; font-size: 14px; font-weight: 600; }
+  .menu-item small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .menu-item[aria-expanded="true"] .chev { transform: rotate(90deg); }
+  .chev { transition: transform 200ms var(--ease-out); }
+  .switch {
+    appearance: none; flex: none; width: 46px; height: 28px; border-radius: 999px; background: #232e42; position: relative; cursor: pointer; margin: 0;
+    transition: background-color 200ms ease;
+  }
+  .switch::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff;
+    transition: transform 200ms var(--ease-out);
+  }
+  .switch:checked { background: var(--accent); }
+  .switch:checked::after { transform: translateX(18px); }
+  .install-help { padding: 14px; background: var(--panel); display: grid; gap: 14px; }
+  .install-help h3 { margin: 0 0 8px; font-size: 13px; font-weight: 650; }
+  .install-help ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .install-help b { color: var(--text); font-weight: 600; }
+  .install-help .btn { margin: 0; }
   .acct-foot { margin: 12px 0 0; font-size: 11.5px; color: var(--muted); text-align: center; }
 
   /* Expired license */
@@ -300,7 +329,7 @@
 </div>
 
 <dialog id="account" aria-labelledby="acctName">
-  <div class="acct">
+  <div class="acct" id="accountView">
     <div class="acct-head">
       <span class="avatar lg" id="acctAvatar"></span>
       <div><h2 id="acctName"></h2><p id="acctEmail"></p></div>
@@ -318,11 +347,53 @@
     </div>
     <div class="acct-actions">
       <a class="btn" id="renewBtn" href="../#oferta" style="display:grid;place-items:center;text-decoration:none">Renovar licença</a>
-      <button class="btn alt" id="updateBtn" type="button">Atualizar app</button>
+      <button class="btn alt row-btn" id="openSettings" type="button"><span>Configurações</span><span class="chev" aria-hidden="true">›</span></button>
       <button class="btn alt" id="logout" type="button">Sair da conta</button>
       <button class="btn danger" id="deleteBtn" type="button">Excluir conta</button>
     </div>
     <p class="acct-foot"><a href="../privacidade.html" style="color:inherit">Política de privacidade</a></p>
+  </div>
+
+  <div class="acct" id="settingsView" hidden>
+    <div class="acct-head">
+      <button class="pill ghost" id="settingsBack" type="button">‹ Voltar</button>
+      <h2 style="margin-left:4px">Configurações</h2>
+      <button class="pill ghost acct-close" id="settingsClose" type="button">Fechar</button>
+    </div>
+
+    <div class="menu">
+      <button class="menu-item" id="installToggle" type="button" aria-expanded="false" aria-controls="installHelp">
+        <span><b>Instalar na tela inicial</b><small id="installState">Abre em tela cheia, como um app</small></span><span class="chev" aria-hidden="true">›</span>
+      </button>
+      <div class="install-help" id="installHelp" hidden>
+        <button class="btn" id="installNow" type="button" hidden>Instalar agora</button>
+        <div class="os" id="helpIos">
+          <h3>iPhone e iPad · Safari</h3>
+          <ol><li>Abra o King Pad no <b>Safari</b>.</li><li>Toque em <b>Compartilhar</b>, o quadrado com a seta para cima.</li><li>Toque em <b>Adicionar à Tela de Início</b>.</li><li>Confirme em <b>Adicionar</b>.</li></ol>
+        </div>
+        <div class="os" id="helpAndroid">
+          <h3>Android · Chrome</h3>
+          <ol><li>Abra o King Pad no <b>Chrome</b>.</li><li>Toque nos <b>três pontinhos</b>, no canto de cima.</li><li>Toque em <b>Adicionar à tela inicial</b> ou <b>Instalar app</b>.</li><li>Confirme em <b>Instalar</b>.</li></ol>
+        </div>
+      </div>
+
+      <label class="menu-item" for="keepAwake">
+        <span><b>Manter a tela ligada</b><small>A tela não apaga enquanto o pad toca</small></span>
+        <input type="checkbox" id="keepAwake" class="switch" role="switch">
+      </label>
+
+      <button class="menu-item" id="resetLevels" type="button">
+        <span><b>Restaurar volumes</b><small>Volta todos os faders para 80 e tira os mutes</small></span>
+      </button>
+
+      <button class="menu-item" id="redownload" type="button">
+        <span><b>Baixar as faixas de novo</b><small id="redownloadState">Refaz a cópia usada sem internet</small></span>
+      </button>
+
+      <button class="menu-item" id="updateBtn" type="button">
+        <span><b>Atualizar app</b><small id="updateState"></small></span>
+      </button>
+    </div>
   </div>
 </dialog>
 
@@ -354,7 +425,7 @@ const CFG = {
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.14';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-20.15';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -367,9 +438,10 @@ const state = {
   mutes: fit(saved.mutes, false),
   master: saved.master ?? .8,
   key: saved.key ?? null,   // selected key
+  keepAwake: saved.keepAwake ?? true,
   on: false,                // sound on/off
 };
-const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ levels: state.levels, mutes: state.mutes, master: state.master, key: state.key })); } catch {} };
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ levels: state.levels, mutes: state.mutes, master: state.master, key: state.key, keepAwake: state.keepAwake })); } catch {} };
 
 const library = {};     // key -> [url | null] per stem
 const sb = supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
@@ -515,7 +587,7 @@ class LoopPair {
 
 async function setWake(on) {
   try {
-    if (on && !wakeLock && navigator.wakeLock) {
+    if (on && state.keepAwake && !wakeLock && navigator.wakeLock) {
       wakeLock = await navigator.wakeLock.request('screen');
       wakeLock.addEventListener('release', () => { wakeLock = null; });
     } else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
@@ -756,6 +828,7 @@ function makeFader({ label, get, set, master, onChip }) {
     if (step) { e.preventDefault(); update(get() + step); save(); }
   });
   if (onChip) chip.addEventListener('click', onChip);
+  el.paint = paint;
 
   paint();
   return el;
@@ -772,7 +845,8 @@ for (let i = 0; i < CFG.stems; i++) {
   faderEls.push(el);
 }
 fadersEl.insertAdjacentHTML('beforeend', '<div class="sep"></div>');
-fadersEl.append(makeFader({ label: 'M', master: true, get: () => state.master, set: (v) => { state.master = v; } }));
+const masterEl = makeFader({ label: 'M', master: true, get: () => state.master, set: (v) => { state.master = v; } });
+fadersEl.append(masterEl);
 
 function render() {
   for (const [key] of KEYS) {
@@ -932,6 +1006,67 @@ $('#daysBadge').addEventListener('click', openAccount);
 $('#paywallAccount').addEventListener('click', openAccount);
 $('#acctClose').addEventListener('click', () => acct.close());
 acct.addEventListener('click', (e) => { if (e.target === acct) acct.close(); });
+
+/* ---------- Settings ---------- */
+const accountView = $('#accountView'), settingsView = $('#settingsView');
+const showView = (settings) => { accountView.hidden = settings; settingsView.hidden = !settings; acct.scrollTop = 0; };
+$('#openSettings').addEventListener('click', () => { renderSettings(); showView(true); });
+$('#settingsBack').addEventListener('click', () => showView(false));
+$('#settingsClose').addEventListener('click', () => acct.close());
+acct.addEventListener('close', () => showView(false));
+
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let installEvent = null;   // Android/desktop Chrome hands us a native install prompt
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; renderSettings(); });
+window.addEventListener('appinstalled', () => { installEvent = null; renderSettings(); });
+
+function renderSettings() {
+  $('#keepAwake').checked = state.keepAwake;
+  $('#updateState').textContent = `Versão ${BUILD}`;
+  $('#installState').textContent = isStandalone() ? 'Já está instalado neste aparelho' : 'Abre em tela cheia, como um app';
+  $('#installNow').hidden = !installEvent;
+  // Show the visitor's own system first.
+  $('#helpIos').style.order = isIos ? 0 : 1;
+  $('#helpAndroid').style.order = isIos ? 1 : 0;
+}
+$('#installToggle').addEventListener('click', () => {
+  const open = $('#installHelp').hidden;
+  $('#installHelp').hidden = !open;
+  $('#installToggle').setAttribute('aria-expanded', String(open));
+});
+$('#installNow').addEventListener('click', async () => {
+  if (!installEvent) return;
+  installEvent.prompt();
+  try { await installEvent.userChoice; } catch {}
+  installEvent = null;
+  renderSettings();
+});
+$('#keepAwake').addEventListener('change', (e) => {
+  state.keepAwake = e.target.checked;
+  save();
+  setWake(state.on && state.keepAwake);
+});
+$('#resetLevels').addEventListener('click', () => {
+  state.levels = Array(CFG.stems).fill(.8);
+  state.mutes = Array(CFG.stems).fill(false);
+  state.master = .8;
+  save();
+  faderEls.forEach((el) => el.paint());
+  masterEl.paint();
+  applyGains();
+  render();
+  toast('Volumes restaurados.');
+});
+$('#redownload').addEventListener('click', async () => {
+  if (!navigator.onLine) return toast('Conecte à internet para baixar as faixas.');
+  if (caching) return toast('O download já está em andamento.');
+  $('#redownloadState').textContent = 'Baixando…';
+  try { await caches.delete('pads-stems-v1'); } catch {}
+  for (const k of Object.keys(offline)) { if (!state.on) URL.revokeObjectURL(offline[k]); delete offline[k]; }
+  await cacheStems();
+  $('#redownloadState').textContent = $('#offlineInfo').textContent === 'Offline ok' ? 'Faixas salvas neste aparelho' : 'Não terminou, tente de novo';
+});
 
 $('#updateBtn').addEventListener('click', async () => {
   if (state.on) return toast('Desligue o som antes de atualizar.');

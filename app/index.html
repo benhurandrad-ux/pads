@@ -438,7 +438,7 @@
   </div>
 </dialog>
 
-<div id="notice" hidden role="status"><span id="noticeText"></span><button class="pill ghost" id="noticeClose" type="button" aria-label="Fechar aviso">Fechar</button></div>
+<div id="notice" hidden role="status"><span id="noticeText"></span><a class="pill primary" id="noticeCta" hidden style="display:inline-grid;place-items:center;text-decoration:none"></a><button class="pill ghost" id="noticeClose" type="button" aria-label="Fechar aviso">Fechar</button></div>
 <div id="maintenance" hidden>
   <div class="auth-card" style="text-align:center">
     <img class="auth-logo" src="mark.png" alt="" width="58" height="64" style="margin-inline:auto">
@@ -474,7 +474,7 @@ const CFG = {
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.18';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-20.19';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -509,6 +509,42 @@ function track(name, props = {}) {
     sb.from('events').insert({ name, props, user_id: user?.id ?? null, anon_id: anonId, source, device: deviceKind, build: BUILD }).then(() => {}, () => {});
   }, 0);
 }
+// Approximate location from the IP (city level, no GPS prompt). Cached for a day; shared with the sales page.
+async function getGeo() {
+  try {
+    const c = JSON.parse(localStorage.getItem('kingpad.geo') || 'null');
+    if (c && Date.now() - c.at < 24 * 3600 * 1000) return c.geo;
+  } catch {}
+  try {
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 6000);
+    const r = await (await fetch('https://ipwho.is/?fields=success,ip,city,region,region_code,country,country_code,latitude,longitude,connection', { signal: ctl.signal })).json();
+    if (!r || r.success === false) return null;
+    const geo = { ip: r.ip || null, city: r.city || null, region: r.region || null, region_code: r.region_code || null, country: r.country || null,
+      country_code: r.country_code || null, lat: r.latitude ?? null, lon: r.longitude ?? null, isp: r.connection?.isp || r.connection?.org || null };
+    try { localStorage.setItem('kingpad.geo', JSON.stringify({ at: Date.now(), geo })); } catch {}
+    return geo;
+  } catch { return null; }
+}
+function uaInfo() {
+  const ua = navigator.userAgent;
+  const os = /iPhone|iPad|iPod/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac OS X/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : 'outro';
+  const browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /SamsungBrowser/.test(ua) ? 'Samsung' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /FxiOS|Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'outro';
+  return { os, browser };
+}
+// One login record per app session (with where it came from), for the admin panel.
+let loginSent = false;
+async function recordLogin() {
+  if (loginSent || !user || !navigator.onLine) return;
+  loginSent = true;
+  const geo = (await getGeo()) || {};
+  const { os, browser } = uaInfo();
+  const row = { user_id: user.id, ip: geo.ip ?? null, city: geo.city ?? null, region: geo.region ?? null, region_code: geo.region_code ?? null,
+    country: geo.country ?? null, country_code: geo.country_code ?? null, lat: geo.lat ?? null, lon: geo.lon ?? null, isp: geo.isp ?? null,
+    device: deviceKind, os, browser, standalone: matchMedia('(display-mode: standalone)').matches || navigator.standalone === true,
+    provider: user.app_metadata?.provider || 'email', build: BUILD };
+  sb.from('logins').insert(row).then(() => {}, () => {});
+}
+
 function trackError(where, message) {
   if (errorBudget-- <= 0) return;
   track('error', { where, message: String(message || '').slice(0, 300) });
@@ -1204,8 +1240,8 @@ function applySession(session) {
   user = session?.user || null;
   authEl.hidden = !!user;
   if (!user && state.on) stopSound();
-  if (!user) { libraryFor = null; license = null; paywall.hidden = true; $('#daysBadge').hidden = true; if (acct.open) acct.close(); }
-  else { renderAccount(); setTimeout(() => { loadLicense(); loadLibrary(); if (!openedSent) { openedSent = true; track('app_open', { standalone: String(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true) }); } }, 0); }   // never call Supabase from inside the auth callback (it can deadlock)
+  if (!user) { loginSent = false; libraryFor = null; license = null; paywall.hidden = true; $('#daysBadge').hidden = true; if (acct.open) acct.close(); }
+  else { renderAccount(); setTimeout(() => { loadLicense(); loadLibrary(); recordLogin(); loadInbox(); if (!openedSent) { openedSent = true; track('app_open', { standalone: String(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true) }); } }, 0); }   // never call Supabase from inside the auth callback (it can deadlock)
   if (user) { $('#authPass').value = ''; say(''); if (libraryReady) { if (!warm.length) prewarm(); cacheStems(); } }
   render();
 }
@@ -1240,11 +1276,38 @@ async function loadSettings() {
   const text = typeof settings.notice === 'string' ? settings.notice.trim() : '';
   let dismissed = null;
   try { dismissed = sessionStorage.getItem('kingpad.notice'); } catch {}
-  $('#noticeText').textContent = text;
-  $('#notice').hidden = !text || dismissed === text;
+  if (!inboxMessage) {
+    $('#noticeText').textContent = text;
+    $('#notice').hidden = !text || dismissed === text;
+  }
   applyMaintenance();
 }
-$('#noticeClose').addEventListener('click', () => { try { sessionStorage.setItem('kingpad.notice', $('#noticeText').textContent); } catch {} $('#notice').hidden = true; });
+/* ---------- Inbox: messages from the automation engine or sent by the admin ---------- */
+let inboxMessage = null;
+async function loadInbox() {
+  if (!user) return;
+  const { data, error } = await sb.from('user_messages').select('id, title, body, cta_label, cta_url').is('read_at', null).order('created_at', { ascending: true }).limit(1);
+  if (error || !data?.length) return;
+  inboxMessage = data[0];
+  $('#noticeText').innerHTML = '';
+  const b = document.createElement('b'); b.textContent = inboxMessage.title ? `${inboxMessage.title} ` : '';
+  $('#noticeText').append(b, document.createTextNode(inboxMessage.body || ''));
+  const cta = $('#noticeCta');
+  const okUrl = typeof inboxMessage.cta_url === 'string' && /^(https:\/\/|\.\.\/|\.\/|#)/.test(inboxMessage.cta_url);
+  cta.hidden = !(inboxMessage.cta_label && okUrl);
+  if (!cta.hidden) { cta.textContent = inboxMessage.cta_label; cta.href = inboxMessage.cta_url; }
+  $('#notice').hidden = false;
+}
+function markInboxRead() {
+  if (!inboxMessage) return false;
+  const id = inboxMessage.id; inboxMessage = null;
+  sb.from('user_messages').update({ read_at: new Date().toISOString() }).eq('id', id).then(() => setTimeout(loadInbox, 400), () => {});
+  $('#noticeCta').hidden = true;
+  return true;
+}
+$('#noticeCta').addEventListener('click', () => { markInboxRead(); });
+$('#noticeClose').addEventListener('click', () => {
+  if (markInboxRead()) { $('#notice').hidden = true; setTimeout(loadSettings, 600); return; } try { sessionStorage.setItem('kingpad.notice', $('#noticeText').textContent); } catch {} $('#notice').hidden = true; });
 loadSettings();
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadSettings(); });
 

@@ -1007,7 +1007,25 @@
       }).catch(() => {});
     } catch {}
   }
-  track('page_view', { path: location.pathname }, true);
+  // Approximate city from the IP (cached for a day, shared with the app) so the admin map can show where visits come from.
+  (async () => {
+    let geo = null;
+    try { const c = JSON.parse(localStorage.getItem('kingpad.geo') || 'null'); if (c && Date.now() - c.at < 24 * 3600 * 1000) geo = c.geo; } catch {}
+    if (!geo) {
+      try {
+        const ctl = new AbortController(); setTimeout(() => ctl.abort(), 5000);
+        const r = await (await fetch('https://ipwho.is/?fields=success,ip,city,region,region_code,country,country_code,latitude,longitude,connection', { signal: ctl.signal })).json();
+        if (r && r.success !== false) {
+          geo = { ip: r.ip || null, city: r.city || null, region: r.region || null, region_code: r.region_code || null, country: r.country || null,
+            country_code: r.country_code || null, lat: r.latitude ?? null, lon: r.longitude ?? null, isp: (r.connection && (r.connection.isp || r.connection.org)) || null };
+          try { localStorage.setItem('kingpad.geo', JSON.stringify({ at: Date.now(), geo })); } catch {}
+        }
+      } catch {}
+    }
+    const props = { path: location.pathname };
+    if (geo && geo.city) Object.assign(props, { city: geo.city, region_code: geo.region_code, country: geo.country, lat: geo.lat, lon: geo.lon });
+    track('page_view', props, true);
+  })();
   document.addEventListener('click', (e) => {
     const a = e.target.closest && e.target.closest('a[href^="app/#cadastro"]');
     if (a) track('cta_click', { where: (a.closest('section, header, footer') || {}).id || 'nav' });

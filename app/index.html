@@ -113,6 +113,23 @@
     transition: opacity 200ms ease;
     will-change: transform;
   }
+  /* While the sound is ON the fills carry a slow moving band of colors (transform only, so it stays on the GPU). */
+  .fill::after {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 800%;
+    background: linear-gradient(90deg, #4c8dff, #8b5cf6, #ec4899, #f59e0b, #22c55e, #06b6d4, #4c8dff, #8b5cf6);
+    opacity: 0; transition: opacity 600ms ease;
+    animation: flow 14s linear infinite; animation-play-state: paused; will-change: transform;
+  }
+  .fill::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(0deg, rgba(8, 12, 20, .45), rgba(8, 12, 20, 0) 55%); opacity: 0; transition: opacity 600ms ease; }
+  .app.is-on .fill::after { opacity: 1; animation-play-state: running; }
+  .app.is-on .fill::before { opacity: 1; }
+  .app.is-on .fader.master .fill::after { opacity: .5; }
+  .fader:nth-child(2) .fill::after { animation-delay: -2.3s; }
+  .fader:nth-child(3) .fill::after { animation-delay: -4.6s; }
+  .fader:nth-child(4) .fill::after { animation-delay: -6.9s; }
+  .fader.master .fill::after { animation-delay: -9.2s; }
+  @keyframes flow { to { transform: translateX(-75%); } }   /* 6 of 8 segments: the last window equals the first, so the loop is seamless */
+  @media (prefers-reduced-motion: reduce) { .fill::after { animation: none; } }
   .fader.muted .fill { opacity: .22; }
   .fader.missing { opacity: .4; }
   .fader.master .fill { background: linear-gradient(0deg, #56627a, #dfe6f3); }
@@ -441,7 +458,7 @@ const CFG = {
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.16';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-20.17';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -865,6 +882,7 @@ const masterEl = makeFader({ label: 'M', master: true, get: () => state.master, 
 fadersEl.append(masterEl);
 
 function render() {
+  $('.app').classList.toggle('is-on', state.on);
   for (const [key] of KEYS) {
     keyBtns[key].setAttribute('aria-pressed', String(state.key === key));
     keyBtns[key].classList.toggle('idle', state.key === key && !state.on);

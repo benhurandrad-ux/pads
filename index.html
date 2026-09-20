@@ -977,6 +977,47 @@
   new WaveField($('#finalWave'), { calm: true });
 
   /* ==================================================================
+     Usage events for the admin BI (anonymous id, first-touch source, no personal data)
+  ================================================================== */
+  const EVENTS_URL = 'https://enytnepolxsyabsxdxyn.supabase.co/rest/v1/events';
+  const EVENTS_KEY = 'sb_publishable_uu8BHH9W8FIZ5IylFURbyw_iOaOi40P';
+  let anonId = null, firstSource = null;
+  try {
+    anonId = localStorage.getItem('kingpad.aid');
+    if (!anonId) { anonId = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)); localStorage.setItem('kingpad.aid', anonId); }
+    firstSource = localStorage.getItem('kingpad.src');
+    if (!firstSource) {
+      const q = new URLSearchParams(location.search);
+      let ref = '';
+      try { ref = document.referrer && new URL(document.referrer).hostname !== location.hostname ? new URL(document.referrer).hostname.replace(/^www\./, '') : ''; } catch {}
+      const parts = [q.get('utm_source') || ref, q.get('utm_campaign') || q.get('utm_content') || ''].filter(Boolean);
+      firstSource = (parts.join(' / ') || 'direto').slice(0, 110);
+      localStorage.setItem('kingpad.src', firstSource);
+    }
+  } catch {}
+  const deviceKind = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desktop';
+  const sent = new Set();
+  function track(name, props, once) {
+    if (once) { if (sent.has(name)) return; sent.add(name); }
+    try {
+      fetch(EVENTS_URL, {
+        method: 'POST', keepalive: true,
+        headers: { apikey: EVENTS_KEY, Authorization: `Bearer ${EVENTS_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ name, props: props || {}, anon_id: anonId, source: firstSource, device: deviceKind, build: 'site' }),
+      }).catch(() => {});
+    } catch {}
+  }
+  track('page_view', { path: location.pathname }, true);
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[href^="app/#cadastro"]');
+    if (a) track('cta_click', { where: (a.closest('section, header, footer') || {}).id || 'nav' });
+  });
+  if ('IntersectionObserver' in window && document.querySelector('#oferta')) {
+    const io = new IntersectionObserver((entries) => { if (entries.some((en) => en.isIntersecting)) { track('offer_view', {}, true); io.disconnect(); } }, { threshold: .35 });
+    io.observe(document.querySelector('#oferta'));
+  }
+
+  /* ==================================================================
      Demo: audio engine
   ================================================================== */
   // Short faded excerpts hosted with the site (the full stems are private to licensed users).
@@ -1151,6 +1192,7 @@
     if (ctx.state !== 'running') ctx.resume().catch(() => {});
     state.on = true;
     startClock();
+    track('demo_on', { key: state.key }, true);
     if (tone && !tone.dead && !tone.thin && tone.key === state.key) {
       const t = tone;
       clearTimeout(t.pauseTimer);
@@ -1177,12 +1219,14 @@
   function limitReached() {
     powerOff(FADE_LIMIT);
     showMsg(LOCKED_MSG, true);
+    track('demo_end', {}, true);
   }
   function selectKey(key) {
     if (state.on && state.key === key && (pending ? pending.key === key : true)) return;
     if (remainingMs() <= 0) { showMsg(LOCKED_MSG, true); return; }
     hideMsg();
     state.key = key;
+    track('demo_key', { key });
     if (!state.on) { powerOn(); return; }
     if (tone && !tone.dead && !tone.thin && tone.key === key) { if (pending) { dispose(pending); pending = null; } render(); return; }
     loadTone(key);

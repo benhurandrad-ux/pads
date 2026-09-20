@@ -1,0 +1,1601 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0a0e16">
+<title>King Pad Admin</title>
+<link rel="icon" href="../favicon.png">
+<style>
+  :root {
+    --bg: #0a0e16;
+    --panel: #131a27;
+    --panel-2: #0f1521;
+    --line: #232e42;
+    --cell: #1a2333;
+    --text: #e8edf6;
+    --muted: #7c89a0;
+    --accent: #4c8dff;
+    --accent-hi: #86b3ff;
+    --accent-soft: rgba(76, 141, 255, .22);
+    --danger: #e5484d;
+    --amber: #e0a23a;
+    --green: #1f9d55;
+    --ease-out: cubic-bezier(.23, 1, .32, 1);
+    --side: 236px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; min-height: 100dvh; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+    font-size: 14px; line-height: 1.45;
+  }
+  button, input, select, textarea { font-family: inherit; }
+  h1, h2, h3, p { margin: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------------------------------------------------------------- gate (loading, no session, no access) */
+  #gate { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; }
+  .gate-card { width: min(100%, 400px); background: var(--panel-2); border: 1px solid var(--line); border-radius: 22px; padding: 24px; }
+  .gate-card img { height: 56px; width: auto; display: block; margin-bottom: 16px; }
+  .gate-card h1 { font-size: 20px; font-weight: 650; letter-spacing: -.01em; margin-bottom: 6px; }
+  .gate-card p { color: var(--muted); font-size: 14px; margin-bottom: 18px; overflow-wrap: anywhere; }
+  .gate-card p b { color: var(--text); font-weight: 600; }
+  .gate-actions { display: grid; gap: 8px; }
+
+  /* ---------------------------------------------------------------- buttons */
+  .btn {
+    appearance: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;
+    min-height: 46px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: #fff;
+    font-size: 15px; font-weight: 650; cursor: pointer;
+    transition: transform 140ms var(--ease-out), opacity 200ms ease, background-color 200ms ease, border-color 200ms ease;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn[disabled] { opacity: .5; cursor: default; }
+  .btn.alt { background: var(--panel); border-color: var(--line); color: var(--text); }
+  .btn.danger { background: transparent; border-color: rgba(229, 72, 77, .5); color: #ff8a8d; }
+  .btn.danger.armed, .btn.danger.solid { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .btn.sm { min-height: 44px; font-size: 13.5px; padding: 0 14px; }
+  .pill {
+    appearance: none; border: 1px solid var(--line); background: var(--panel); color: var(--text); white-space: nowrap;
+    min-height: 44px; padding: 0 16px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px;
+    transition: transform 140ms var(--ease-out), background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+  }
+  .pill:active { transform: scale(.97); }
+  .pill.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .pill.ghost { background: transparent; color: var(--muted); }
+  .pill[aria-pressed="true"] { background: var(--accent-soft); border-color: rgba(76, 141, 255, .55); color: #cfe0ff; }
+  .pill .count { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
+  .pill[aria-pressed="true"] .count { color: #a9c8ff; }
+  @media (hover: hover) and (pointer: fine) {
+    .pill:hover { border-color: #34435f; }
+    .btn.alt:hover { border-color: #34435f; }
+    .nav button:hover { background: var(--panel); color: var(--text); }
+    .urow:hover, table.rt tbody tr.click:hover { background: rgba(76, 141, 255, .06); }
+    th.sortable:hover { color: var(--text); }
+  }
+
+  /* ---------------------------------------------------------------- shell */
+  #shell { display: grid; grid-template-columns: var(--side) minmax(0, 1fr); min-height: 100dvh; }
+  .side {
+    position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; gap: 18px;
+    padding: 22px 14px 16px; border-right: 1px solid var(--line); background: #0c111b;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
+  .brand img { height: 26px; width: auto; display: block; }
+  .brand b { font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+  .brand span { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #a9c8ff; background: var(--accent-soft); padding: 3px 7px; border-radius: 6px; }
+  .nav { display: grid; gap: 2px; }
+  .nav button {
+    appearance: none; border: 0; background: transparent; color: var(--muted); cursor: pointer; text-align: left;
+    display: flex; align-items: center; gap: 11px; min-height: 44px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 600;
+    transition: transform 140ms var(--ease-out), background-color 200ms ease, color 200ms ease;
+  }
+  .nav button:active { transform: scale(.97); }
+  .nav button svg { width: 18px; height: 18px; flex: none; }
+  .nav button[aria-current="page"] { background: var(--panel); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+  .nav button[aria-current="page"] svg { color: var(--accent); }
+  .side-foot { margin-top: auto; display: grid; gap: 8px; padding: 0 4px; }
+  .side-foot .who { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; padding: 0 6px; }
+  .side-foot .who b { display: block; color: var(--text); font-weight: 600; font-size: 12.5px; }
+
+  .main { min-width: 0; padding: 26px clamp(16px, 3vw, 36px) 60px; }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  .topbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .topbar h1 { font-size: 24px; font-weight: 680; letter-spacing: -.02em; }
+  .topbar .sub { color: var(--muted); font-size: 13px; width: 100%; margin-top: -8px; }
+  .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .stamp { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .mhead { display: none; }
+  #view { transition: opacity 200ms ease; }
+  #view.is-loading { opacity: .55; }
+
+  /* ---------------------------------------------------------------- cards and grids */
+  .grid { display: grid; gap: 14px; }
+  .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stack { display: grid; gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px; min-width: 0; }
+  .card-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .card-head h2 { font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+  .card-head .hint { font-size: 12.5px; color: var(--muted); }
+  .card-head .total { margin-left: auto; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; vertical-align: middle; }
+
+  .kpis { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .kpi .l { font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .kpi .v { font-size: 26px; font-weight: 680; letter-spacing: -.02em; line-height: 1.15; }
+  .kpi .s { font-size: 12px; color: var(--muted); }
+  .kpi.hero { grid-column: span 2; grid-row: span 2; justify-content: space-between; background: linear-gradient(160deg, #16223a, var(--panel) 70%); }
+  .kpi.hero .v { font-size: clamp(40px, 5vw, 54px); }
+  .kpi.wide { grid-column: span 2; }
+  .kpi .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .dot.green { background: var(--green); } .dot.amber { background: var(--amber); } .dot.red { background: var(--danger); } .dot.blue { background: var(--accent); } .dot.gray { background: #46536b; }
+
+  /* state badges: status color always ships with a label */
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 650; padding: 4px 9px; border-radius: 999px; white-space: nowrap; background: #1b2434; color: #c5cfdf; }
+  .badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #46536b; }
+  .badge.trial::before { background: var(--accent); }
+  .badge.paid::before, .badge.life::before { background: var(--green); }
+  .badge.soon::before { background: var(--amber); }
+  .badge.over::before, .badge.blocked::before { background: var(--danger); }
+
+  /* ---------------------------------------------------------------- funnel (rows on phone, columns on desktop) */
+  .funnel { display: grid; gap: 12px; }
+  .fstep { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: baseline; }
+  .fstep .fl { font-size: 13px; color: var(--muted); }
+  .fstep .fv { font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; text-align: right; }
+  .fstep .fbar { grid-column: 1 / -1; height: 10px; border-radius: 0 4px 4px 0; background: var(--accent); width: var(--p); min-width: 2px; }
+  .fstep .fbar.zero { background: var(--cell); width: 100%; border-radius: 4px; height: 4px; }
+  .fstep .fd { grid-column: 1 / -1; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  @media (min-width: 900px) {
+    .funnel { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; align-items: end; }
+    .fstep { grid-template-columns: 1fr; grid-template-rows: auto 130px auto auto; gap: 6px; text-align: left; border-left: 1px solid var(--line); padding-left: 10px; }
+    .fstep .fv { order: 1; text-align: left; font-size: 20px; }
+    .fstep .fcol { order: 2; display: flex; align-items: flex-end; height: 130px; }
+    .fstep .fbar { width: 24px; height: var(--p); min-height: 2px; border-radius: 4px 4px 0 0; }
+    .fstep .fbar.zero { width: 24px; height: 2px; border-radius: 0; }
+    .fstep .fl { order: 3; font-size: 12.5px; line-height: 1.3; min-height: 2.6em; }
+    .fstep .fd { order: 4; min-height: 1.4em; }
+  }
+  @media (max-width: 899px) { .fstep .fcol { display: contents; } }
+
+  /* ---------------------------------------------------------------- charts */
+  .chart { position: relative; width: 100%; }
+  .chart svg { display: block; width: 100%; height: auto; touch-action: pan-y; overflow: visible; }
+  .chart text { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; font-family: inherit; }
+  .chart .lbl { fill: var(--text); font-weight: 650; font-size: 12px; }
+  .chart .grid-l { stroke: var(--line); stroke-width: 1; shape-rendering: crispEdges; }
+  .chart .bar { fill: var(--accent); transition: fill 120ms ease; }
+  .chart .bar.on { fill: var(--accent-hi); }
+  .chart .cell { transition: stroke 120ms ease; stroke: transparent; stroke-width: 1.5; }
+  .chart .cell.on { stroke: #dfe9ff; }
+  .empty { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 8px 8px 4px; }
+  .empty svg { width: min(100%, 260px); height: auto; display: block; margin-bottom: 6px; }
+  .empty b { font-size: 13.5px; font-weight: 650; }
+  .empty span { font-size: 12.5px; color: var(--muted); max-width: 34ch; }
+  #tip {
+    position: fixed; z-index: 50; left: 0; top: 0; pointer-events: none; opacity: 0; transition: opacity 120ms ease;
+    background: #232e42; border: 1px solid #34435f; border-radius: 10px; padding: 7px 10px; box-shadow: 0 12px 28px -10px rgba(0, 0, 0, .7);
+    font-size: 12px; color: var(--muted); max-width: 240px;
+  }
+  #tip.show { opacity: 1; }
+  #tip b { display: block; color: var(--text); font-size: 14px; font-weight: 680; font-variant-numeric: tabular-nums; }
+
+  .hbars { display: grid; grid-template-columns: minmax(28px, max-content) 1fr max-content; gap: 10px; }
+  .hbar { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 24px; outline: none; border-radius: 6px; }
+  .hbar:focus-visible { box-shadow: 0 0 0 2px var(--accent-soft); }
+  .hbar .hl { font-size: 13px; color: var(--text); font-weight: 600; max-width: 18ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hbar .ht { height: 12px; position: relative; }
+  .hbar .hf { position: absolute; left: 0; top: 0; bottom: 0; width: var(--p); min-width: 2px; background: var(--accent); border-radius: 0 4px 4px 0; transition: background-color 120ms ease; }
+  .hbar.on .hf { background: var(--accent-hi); }
+  .hbar .hv { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .hbar .hv b { color: var(--text); font-weight: 650; }
+
+  .gauges { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .gauge { text-align: center; position: relative; }
+  .gauge svg { width: 100%; max-width: 170px; height: auto; display: block; margin: 0 auto; }
+  .gauge .gv { font-size: 22px; font-weight: 680; letter-spacing: -.02em; margin-top: -30px; height: 30px; line-height: 30px; }
+  .gauge .gv.none { font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: 0; }
+  .gauge .gl { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .gauge .gl b { color: var(--text); font-weight: 650; }
+  .scale { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+  .scale i { width: 14px; height: 10px; border-radius: 2px; background: var(--accent); display: block; }
+
+  .seg { display: inline-grid; grid-auto-flow: column; gap: 4px; padding: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+  .seg button { appearance: none; border: 0; background: transparent; color: var(--muted); min-height: 38px; min-width: 60px; padding: 0 12px; border-radius: 10px; font-size: 13px; font-weight: 650; cursor: pointer; transition: background-color 200ms ease, color 200ms ease, transform 140ms var(--ease-out); }
+  .seg button:active { transform: scale(.97); }
+  .seg button[aria-pressed="true"] { background: #232e42; color: var(--text); }
+
+  /* ---------------------------------------------------------------- lists and tables */
+  .urow { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 12px; min-height: 56px; }
+  .urow + .urow { border-top: 1px solid var(--line); border-top-left-radius: 0; border-top-right-radius: 0; }
+  .urow .who { min-width: 0; flex: 1; cursor: pointer; background: none; border: 0; color: inherit; text-align: left; padding: 0; font: inherit; min-height: 44px; }
+  .urow .who b { display: block; font-size: 13.5px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .urow .who span { display: block; font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; flex: none; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #2b4a8a, #4c8dff); color: #fff; font-size: 13px; font-weight: 700; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .avatar.lg { width: 60px; height: 60px; font-size: 22px; }
+  .scrolly { max-height: 392px; overflow-y: auto; overscroll-behavior: contain; margin-right: -8px; padding-right: 8px; }
+  .none-line { font-size: 13px; color: var(--muted); padding: 6px 2px; }
+
+  .tools { display: grid; gap: 12px; margin-bottom: 14px; }
+  .search { position: relative; }
+  .search input, .input, select.input, textarea.input {
+    width: 100%; min-height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    padding: 0 14px; font-size: 16px; outline: none; transition: border-color 200ms ease;
+  }
+  textarea.input { padding: 12px 14px; min-height: 84px; resize: vertical; line-height: 1.4; }
+  .search input { padding-left: 42px; }
+  .search svg { position: absolute; left: 14px; top: 50%; translate: 0 -50%; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+  .search input:focus, .input:focus { border-color: var(--accent); }
+  input[type="date"].input { color-scheme: dark; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; margin: 0 calc(-1 * clamp(16px, 3vw, 36px)); padding-inline: clamp(16px, 3vw, 36px); }
+  .chips::-webkit-scrollbar { display: none; }
+  .sortsel { display: none; }
+
+  .tablewrap { overflow-x: auto; }
+  table.rt { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.rt th { text-align: left; font-size: 12px; font-weight: 650; color: var(--muted); padding: 0 12px 10px; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  table.rt th.sortable { cursor: pointer; user-select: none; transition: color 200ms ease; }
+  table.rt th[aria-sort] { color: var(--text); }
+  table.rt th[aria-sort="ascending"]::after { content: " ↑"; }
+  table.rt th[aria-sort="descending"]::after { content: " ↓"; }
+  table.rt td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  table.rt tbody tr:last-child td { border-bottom: 0; }
+  table.rt tbody tr.click { cursor: pointer; transition: background-color 160ms ease; }
+  table.rt td.n, table.rt th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  table.rt td.mut { color: var(--muted); }
+  table.rt td.wrapcell { overflow-wrap: anywhere; min-width: 200px; }
+  .ucell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .ucell div { min-width: 0; }
+  .ucell div b { display: block; font-weight: 650; max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ucell div span { display: block; font-size: 12.5px; color: var(--muted); max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .more { display: flex; justify-content: center; padding-top: 14px; }
+
+  /* ---------------------------------------------------------------- settings */
+  .setrow { display: grid; gap: 8px; padding: 16px 0; border-top: 1px solid var(--line); }
+  .setrow:first-of-type { border-top: 0; padding-top: 0; }
+  .setrow label { font-size: 13.5px; font-weight: 650; }
+  .setrow .help { font-size: 12.5px; color: var(--muted); }
+  .setrow .line { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  .notice-prev { border: 1px solid rgba(224, 162, 58, .5); background: rgba(224, 162, 58, .12); color: #f6d08a; border-radius: 12px; padding: 11px 14px; font-size: 13.5px; overflow-wrap: anywhere; }
+  .notice-prev.off { border-color: var(--line); background: transparent; color: var(--muted); }
+  .phone { border: 1px solid var(--line); border-radius: 18px; padding: 12px; background: var(--bg); display: grid; gap: 10px; }
+  .phone .bar { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; }
+  .phone .bar img { height: 18px; }
+  .switchrow { display: flex; align-items: center; gap: 14px; justify-content: space-between; }
+  .switch { appearance: none; width: 52px; height: 32px; border-radius: 999px; background: #2a3650; position: relative; cursor: pointer; flex: none; transition: background-color 200ms ease; margin: 6px 0; }
+  .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; transition: transform 220ms var(--ease-out); }
+  .switch::before { content: ""; position: absolute; inset: -8px -6px; }   /* 44px+ touch area */
+  .switch:checked { background: var(--danger); }
+  .switch:checked::after { transform: translateX(20px); }
+
+  /* ---------------------------------------------------------------- dialogs, toast */
+  dialog {
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 22px; padding: 0;
+    width: min(94vw, 520px); max-height: 92dvh; overflow-y: auto;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .8);
+    transition: opacity 200ms ease, transform 260ms var(--ease-out);
+  }
+  dialog.small { width: min(92vw, 400px); }
+  @starting-style { dialog[open] { opacity: 0; transform: translateY(10px) scale(.98); } }
+  dialog::backdrop { background: rgba(4, 7, 12, .66); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  .dlg { padding: 20px; display: grid; gap: 16px; }
+  .dlg-head { display: flex; align-items: center; gap: 14px; }
+  .dlg-head .t { min-width: 0; flex: 1; }
+  .dlg-head h2 { font-size: 18px; font-weight: 650; letter-spacing: -.01em; overflow-wrap: anywhere; }
+  .dlg-head p { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+  .lic { border-radius: 16px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); display: grid; gap: 4px; }
+  .lic-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .lic-days { font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+  .lic-days small { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0; margin-left: 5px; }
+  .lic p { font-size: 12.5px; color: var(--muted); }
+  .lic.soon { border-color: rgba(224, 162, 58, .55); } .lic.over, .lic.blocked { border-color: rgba(229, 72, 77, .55); }
+  .rows { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; }
+  .rows div { padding: 10px 14px; border-bottom: 1px solid var(--line); min-width: 0; }
+  .rows div:nth-child(odd) { border-right: 1px solid var(--line); }
+  .rows .k { display: block; font-size: 11.5px; color: var(--muted); }
+  .rows .v { display: block; font-size: 13.5px; font-weight: 650; overflow-wrap: anywhere; }
+  .sect { display: grid; gap: 8px; }
+  .sect h3 { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .btnrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .btnrow .btn { padding: 0 8px; line-height: 1.15; }
+  .btnrow.two { grid-template-columns: 1fr 1fr; }
+  .line2 { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  .dangerzone { border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 8px; }
+  .dangerzone p { font-size: 12.5px; color: var(--muted); }
+
+  #toast {
+    position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px); z-index: 60;
+    translate: -50% 0; max-width: min(88vw, 440px); padding: 11px 16px; border-radius: 14px;
+    background: #232e42; color: var(--text); font-size: 13.5px; line-height: 1.35; text-align: center;
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, .6);
+    opacity: 0; transform: translateY(8px); pointer-events: none;
+    transition: opacity 200ms ease, transform 240ms var(--ease-out);
+  }
+  #toast.show { opacity: 1; transform: none; }
+  #toast.err { background: #4a1c20; }
+
+  .state { display: grid; gap: 10px; justify-items: start; padding: 6px 0; }
+  .state p { color: var(--muted); font-size: 13.5px; }
+  .state.err p { color: #ffb3b5; }
+  .spinner { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin 800ms linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------------------------------------------------------------- phone and tablet */
+  @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .g3 { grid-template-columns: 1fr; } }
+  @media (max-width: 860px) {
+    #shell { grid-template-columns: minmax(0, 1fr); }
+    .side {
+      position: fixed; top: auto; bottom: 0; left: 0; right: 0; height: auto; z-index: 20; flex-direction: row; gap: 0;
+      padding: 6px 8px calc(env(safe-area-inset-bottom) + 6px); border-right: 0; border-top: 1px solid var(--line);
+      background: rgba(12, 17, 27, .94); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    .side .brand, .side-foot { display: none; }
+    .nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; width: 100%; scroll-snap-type: x proximity; }
+    .nav::-webkit-scrollbar { display: none; }
+    .nav button { flex: 0 0 auto; flex-direction: column; justify-content: center; gap: 3px; min-width: 76px; min-height: 52px; padding: 4px 10px; font-size: 10.5px; font-weight: 650; text-align: center; scroll-snap-align: start; white-space: nowrap; }
+    .nav button svg { width: 20px; height: 20px; }
+    .nav button[aria-current="page"] { box-shadow: none; background: var(--panel); }
+    .main { padding: 0 16px calc(env(safe-area-inset-bottom) + 96px); }
+    .mhead { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 15; margin: 0 -16px 14px; padding: calc(env(safe-area-inset-top) + 8px) 16px 8px; background: rgba(10, 14, 22, .92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+    .mhead img { height: 22px; }
+    .mhead b { font-size: 14px; font-weight: 650; }
+    .mhead .out { margin-left: auto; }
+    .topbar h1 { font-size: 22px; }
+    .topbar .right { margin-left: 0; width: 100%; justify-content: space-between; }
+    .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .kpi { padding: 14px; border-radius: 16px; }
+    .kpi .v { font-size: 22px; }
+    .kpi.hero { grid-row: auto; gap: 10px; }
+    .g2 { grid-template-columns: 1fr; }
+    .card { padding: 16px; border-radius: 16px; }
+    #toast { bottom: calc(env(safe-area-inset-bottom) + 84px); }
+    .sortsel { display: block; }
+    .chips { margin: 0 -16px; padding-inline: 16px; }
+    /* tables become cards */
+    .tablewrap { overflow: visible; }
+    table.rt thead { display: none; }
+    table.rt, table.rt tbody { display: block; }
+    table.rt tbody tr { display: grid; gap: 6px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+    table.rt tbody tr:last-child { border-bottom: 0; }
+    table.rt td { display: flex; justify-content: space-between; gap: 14px; padding: 0; border: 0; text-align: right; }
+    table.rt td::before { content: attr(data-l); color: var(--muted); font-size: 12.5px; text-align: left; flex: none; }
+    table.rt td.lead { display: block; text-align: left; }
+    table.rt td.lead::before { content: none; }
+    table.rt td.wrapcell { min-width: 0; }
+    table.rt.users tbody tr { grid-template-columns: repeat(3, 1fr); gap: 8px 10px; min-height: 44px; }
+    table.rt.users td.lead, table.rt.users td.full { grid-column: 1 / -1; }
+    table.rt.users td.full::before { content: none; }
+    table.rt.users td.full > span { justify-content: flex-start !important; }
+    table.rt.users td.hide-m { display: none; }
+    table.rt.users td:not(.lead):not(.full):not(.hide-m) { display: block; text-align: left; font-size: 13px; color: var(--text); }
+    table.rt.users td:not(.lead):not(.full):not(.hide-m)::before { display: block; font-size: 11.5px; }
+    .topbar .sub { order: 2; margin-top: -6px; }
+    .topbar .right { order: 3; }
+    .btnrow { grid-template-columns: repeat(3, 1fr); }
+    .gauge .gv { font-size: 18px; margin-top: -26px; height: 26px; line-height: 26px; }
+    .gauge .gv.none { font-size: 11.5px; }
+    .gauge .gl { font-size: 11.5px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 1ms !important; }
+    .btn, .pill, .nav button, .seg button, dialog, #toast, .switch::after { transition-property: opacity, background-color, border-color, color; }
+    .btn:active, .pill:active, .nav button:active, .seg button:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="gate"><div class="gate-card" id="gateCard"></div></div>
+
+<div id="shell" hidden>
+  <aside class="side">
+    <div class="brand"><img src="../mark.png" alt=""><b>King Pad</b><span>Admin</span></div>
+    <nav class="nav" id="nav" aria-label="Menus do painel"></nav>
+    <div class="side-foot">
+      <div class="who">Entrou como<b id="whoEmail"></b></div>
+      <button class="pill ghost" id="outBtn" type="button">Sair</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="mhead"><img src="../mark.png" alt=""><b>King Pad Admin</b><button class="pill ghost out" id="outBtnM" type="button">Sair</button></div>
+    <div class="wrap">
+      <div class="topbar" id="topbar"></div>
+      <div id="view"></div>
+    </div>
+  </main>
+</div>
+
+<dialog id="userDlg" aria-label="Ficha do usuário"></dialog>
+<dialog id="confirmDlg" class="small" aria-label="Confirmação"></dialog>
+<div id="tip" role="tooltip"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ------------------------------------------------------------------ config */
+const SUPA_URL = 'https://enytnepolxsyabsxdxyn.supabase.co';
+const SUPA_KEY = 'sb_publishable_uu8BHH9W8FIZ5IylFURbyw_iOaOi40P';
+const PRICE = 14.9;                                  // monthly price used by every "estimado" figure
+const DAY = 864e5;
+const LIFETIME_MS = 3652.5 * DAY;                    // expires more than 10 years ahead = lifetime
+const LIFETIME_DATE = '2099-12-31T00:00:00Z';
+const TZ = 'America/Sao_Paulo';
+const KEYS_ORDER = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+const DOW = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const MSG_DB = 'O banco ainda não foi preparado: rode supabase/admin.sql';
+
+let sb = null;
+const S = {
+  session: null, demo: false, view: 'overview', days: 30, loadedAt: null, loading: false,
+  filter: 'all', query: '', sort: { key: 'created_at', dir: -1 }, shown: 60,
+};
+const D = { users: null, stats: null, log: null, settings: null, admins: null };   // data per resource
+const E = { users: null, stats: null, log: null, settings: null, admins: null };   // error message per resource
+
+/* ------------------------------------------------------------------ tiny helpers */
+const $ = (sel, root = document) => root.querySelector(sel);
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+// DOM builder: strings always go through text nodes, never innerHTML (names, notes and errors are untrusted)
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  setAttrs(el, attrs);
+  append(el, kids);
+  return el;
+}
+function s(tag, attrs, ...kids) {
+  const el = document.createElementNS(SVGNS, tag);
+  for (const k in attrs || {}) if (attrs[k] != null) el.setAttribute(k, attrs[k]);
+  append(el, kids);
+  return el;
+}
+function setAttrs(el, attrs) {
+  for (const k in attrs || {}) {
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style') el.style.cssText = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'value' || k === 'checked' || k === 'disabled' || k === 'hidden') el[k] = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+}
+function append(el, kids) {
+  for (const kid of kids.flat(Infinity)) {
+    if (kid == null || kid === false) continue;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+}
+function icon(d) {
+  const svg = s('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' });
+  d.split('|').forEach(p => svg.append(s('path', { d: p })));
+  return svg;
+}
+
+const nf = n => Number(n || 0).toLocaleString('pt-BR');
+const brl = n => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const pct = n => (n == null || !isFinite(n)) ? 'sem dados' : Math.round(n).toLocaleString('pt-BR') + '%';
+const two = n => String(n).padStart(2, '0');
+const dm = d => { d = new Date(d); return two(d.getDate()) + '/' + two(d.getMonth() + 1); };
+const dmy = d => { d = new Date(d); return dm(d) + '/' + d.getFullYear(); };
+const dthm = d => { d = new Date(d); return dm(d) + ' ' + two(d.getHours()) + ':' + two(d.getMinutes()); };
+const dayKey = d => new Date(d).toLocaleDateString('en-CA', { timeZone: TZ });       // YYYY-MM-DD in the BI timezone
+const dayLabel = k => k.slice(8, 10) + '/' + k.slice(5, 7);
+const plural = (n, one, many) => nf(n) + ' ' + (n === 1 ? one : many);
+function ago(d) {
+  if (!d) return 'nunca';
+  const diff = Date.now() - new Date(d).getTime();
+  if (diff < 36e5) return 'há ' + Math.max(1, Math.round(diff / 6e4)) + ' min';
+  if (diff < DAY) return 'há ' + Math.round(diff / 36e5) + ' h';
+  const days = Math.round(diff / DAY);
+  return days <= 60 ? 'há ' + plural(days, 'dia', 'dias') : dmy(d);
+}
+function lastDays(n) {                                 // list of YYYY-MM-DD keys, oldest first, ending today
+  const out = [];
+  for (let i = n - 1; i >= 0; i--) out.push(dayKey(Date.now() - i * DAY));
+  return out;
+}
+
+let toastTimer;
+function toast(msg, isErr) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.toggle('err', !!isErr);
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3600);
+}
+
+// short pt-BR message for any Supabase or network error
+function explain(err) {
+  const code = String(err?.code || '');
+  const msg = String(err?.message || err || '');
+  if (['PGRST202', 'PGRST205', '42883', '42P01'].includes(code) || /could not find the (function|table)|does not exist|schema cache/i.test(msg)) return MSG_DB;
+  if (/forbidden|permission denied|row-level security/i.test(msg) || code === '42501') return 'Sem permissão para isso. Confira se o seu e-mail está na lista de administradores.';
+  if (/cannot delete yourself/i.test(msg)) return 'Você não pode excluir a própria conta por aqui.';
+  if (/failed to fetch|network|load failed|timeout/i.test(msg)) return 'Sem conexão com o servidor. Confira a internet.';
+  if (/jwt|token|session/i.test(msg)) return 'A sessão venceu. Entre no app de novo.';
+  return 'Não deu certo agora. Tente de novo em instantes.';
+}
+
+/* ------------------------------------------------------------------ license state (derived on the client) */
+function lic(u) {
+  const now = Date.now();
+  const exp = u.expires_at ? new Date(u.expires_at).getTime() : null;
+  const left = exp == null ? null : Math.ceil((exp - now) / DAY);
+  const lifetime = exp != null && exp > now + LIFETIME_MS;
+  const expired = exp == null || exp <= now;
+  const paid = !lifetime && !expired && u.plan === 'mensal';
+  const trial = !lifetime && !expired && u.plan === 'teste';
+  let key = 'none', label = 'Sem licença', cls = 'over';
+  if (u.blocked) { key = 'blocked'; label = 'Bloqueado'; cls = 'blocked'; }
+  else if (lifetime) { key = 'life'; label = u.plan === 'admin' ? 'Admin vitalício' : 'Vitalício'; cls = 'life'; }
+  else if (expired) { key = 'expired'; label = 'Vencido'; cls = 'over'; }
+  else if (paid) { key = 'paid'; label = 'Assinante'; cls = left <= 3 ? 'soon' : 'paid'; }
+  else if (trial) { key = 'trial'; label = 'Em teste'; cls = left <= 3 ? 'soon' : 'trial'; }
+  else { key = 'other'; label = 'Ativo'; cls = 'paid'; }
+  return { key, label, cls, exp, left, lifetime, expired, paid, trial, blocked: !!u.blocked };
+}
+function expiresIn(u, days) {                          // active, not lifetime, expiring within N days
+  const l = lic(u);
+  return !l.blocked && !l.lifetime && !l.expired && l.exp - Date.now() <= days * DAY;
+}
+function leftText(l) {
+  if (l.lifetime) return 'sem vencimento';
+  if (l.exp == null) return 'sem data';
+  if (l.expired) return 'venceu ' + ago(l.exp);
+  if (dayKey(l.exp) === dayKey(Date.now())) return 'vence hoje';
+  if (l.exp - Date.now() < DAY) return 'vence amanhã';
+  return 'vence em ' + plural(l.left, 'dia', 'dias');
+}
+function summary() {
+  const users = D.users || [];
+  const now = Date.now();
+  const c = { total: users.length, new7: 0, new30: 0, trial: 0, paid: 0, expired: 0, expiredTrial: 0, blocked: 0, life: 0, soon7: 0 };
+  for (const u of users) {
+    const l = lic(u);
+    const age = now - new Date(u.created_at).getTime();
+    if (age <= 7 * DAY) c.new7++;
+    if (age <= 30 * DAY) c.new30++;
+    if (l.blocked) c.blocked++;
+    if (l.trial && !l.blocked) c.trial++;
+    if (l.paid && !l.blocked) c.paid++;
+    if (l.lifetime) c.life++;
+    if (l.expired && !l.lifetime) { c.expired++; if (u.plan === 'teste') c.expiredTrial++; }
+    if (expiresIn(u, 7)) c.soon7++;
+  }
+  c.mrr = c.paid * PRICE;
+  c.conv = (c.paid + c.expiredTrial) ? 100 * c.paid / (c.paid + c.expiredTrial) : null;
+  return c;
+}
+
+/* ------------------------------------------------------------------ data loading */
+const RES = {
+  users: () => sb.rpc('admin_users'),
+  stats: () => sb.rpc('admin_stats', { p_days: S.days }),
+  log: () => sb.from('license_log').select('*').order('created_at', { ascending: false }).limit(200),
+  settings: () => sb.from('app_settings').select('*'),
+  admins: () => sb.from('admins').select('*').order('created_at', { ascending: true }),
+};
+const ALL = Object.keys(RES);
+
+async function load(names = ALL) {
+  if (S.demo) { S.loadedAt = new Date(); render(); return; }
+  S.loading = true;
+  $('#view').classList.add('is-loading');              // refetch keeps the frame, dimmed
+  await Promise.all(names.map(async name => {
+    try {
+      const { data, error } = await RES[name]();
+      if (error) throw error;
+      D[name] = data; E[name] = null;
+    } catch (err) {
+      E[name] = explain(err);
+    }
+  }));
+  S.loading = false; S.loadedAt = new Date();
+  $('#view').classList.remove('is-loading');
+  render();
+}
+
+// block shown in place of a section while its data is missing
+function guard(names) {
+  for (const n of names) {
+    if (E[n]) return h('div', { class: 'state err' }, h('p', null, E[n]), h('button', { class: 'pill', type: 'button', onclick: () => load([n]) }, 'Tentar de novo'));
+  }
+  for (const n of names) {
+    if (D[n] == null) return h('div', { class: 'state' }, h('div', { class: 'spinner' }), h('p', null, 'Carregando'));
+  }
+  return null;
+}
+function card(title, hint, needs, build, extra) {
+  const head = h('div', { class: 'card-head' }, h('h2', null, title), hint ? h('span', { class: 'hint' }, hint) : null);
+  const c = h('section', { class: 'card' + (extra ? ' ' + extra : '') }, head);
+  const g = guard(needs);
+  if (g) c.append(g); else build(c, head);
+  return c;
+}
+
+/* ------------------------------------------------------------------ charts (hand drawn SVG, redrawn at real pixel width) */
+const charts = new Set();
+const ro = ('ResizeObserver' in window) ? new ResizeObserver(entries => {
+  for (const en of entries) {
+    const c = en.target.__chart;
+    const w = Math.round(en.contentRect.width);
+    if (c && w && w !== c.w) { c.w = w; c.draw(w); }
+  }
+}) : null;
+function mount(draw) {
+  const el = h('div', { class: 'chart' });
+  el.__chart = { w: 0, draw: w => { el.replaceChildren(draw(w)); } };
+  charts.add(el);
+  if (ro) ro.observe(el); else requestAnimationFrame(() => el.__chart.draw(el.clientWidth || 600));
+  return el;
+}
+
+const tipEl = () => $('#tip');
+function showTip(x, y, value, label) {
+  const t = tipEl();
+  t.replaceChildren(h('b', null, value), label);
+  clearTimeout(tipTimer);
+  t.classList.add('show');
+  const r = t.getBoundingClientRect();
+  let left = Math.min(Math.max(8, x + 12), innerWidth - r.width - 8);
+  let top = y - r.height - 14;
+  if (top < 8) top = y + 18;
+  t.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+}
+let tipTimer;
+function hideTip() { clearTimeout(tipTimer); tipEl().classList.remove('show'); }
+// wraps a "mark off" handler: mouse leaves at once, touch lingers so the value can be read
+function lazyOff(off) {
+  return ev => {
+    if (ev && ev.pointerType === 'touch') { clearTimeout(tipTimer); tipTimer = setTimeout(off, 2400); }
+    else off();
+  };
+}
+addEventListener('scroll', hideTip, { passive: true });
+
+function niceScale(max) {
+  if (max <= 0) return { top: 1, ticks: [0, 1] };
+  const raw = max / 4;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  let step = [1, 2, 5, 10].map(m => m * pow).find(v => v >= raw) || raw;
+  step = Math.max(1, step);
+  const top = Math.ceil(max / step) * step;
+  const ticks = [];
+  for (let v = 0; v <= top + 1e-9; v += step) ticks.push(v);
+  return { top, ticks };
+}
+
+function emptyChart(custom) {
+  const svg = s('svg', { viewBox: '0 0 260 84', 'aria-hidden': 'true' });
+  [14, 38, 62].forEach(y => svg.append(s('line', { x1: 0, x2: 260, y1: y, y2: y, stroke: '#1b2434', 'stroke-width': 1 })));
+  svg.append(s('line', { x1: 0, x2: 260, y1: 80, y2: 80, stroke: '#232e42', 'stroke-width': 1 }));
+  [18, 30, 24, 40, 34, 52, 46, 60].forEach((v, i) => svg.append(s('rect', { x: 14 + i * 31, y: 80 - v, width: 14, height: v, rx: 3, fill: '#182132' })));
+  return h('div', { class: 'empty' }, svg, h('b', null, custom || 'Ainda sem dados nesse período'), h('span', null, 'O BI começa a contar quando os eventos entram no ar.'));
+}
+
+// points: [{ label: 'dd/mm', value: number }]
+function seriesChart(kind, points, opts = {}) {
+  if (!points.length || points.every(p => !p.value)) return emptyChart(opts.emptyText);
+  const unit = opts.unit || '';
+  const fmt = opts.fmt || (v => nf(v) + (unit ? ' ' + unit : ''));
+  const fmtShort = opts.fmtShort || nf;
+  return mount(w => {
+    const H = opts.height || 200, mL = 36, mR = kind === 'line' ? 34 : 8, mT = 14, mB = 24;
+    const iw = Math.max(40, w - mL - mR), ih = H - mT - mB;
+    const { top, ticks } = niceScale(Math.max(...points.map(p => p.value)));
+    const n = points.length;
+    const band = iw / n;
+    const xAt = i => kind === 'line' ? mL + (n === 1 ? iw / 2 : i * iw / (n - 1)) : mL + band * (i + .5);
+    const yAt = v => mT + ih - (v / top) * ih;
+    const svg = s('svg', { viewBox: `0 0 ${w} ${H}`, role: 'img', 'aria-label': opts.aria || 'Gráfico' });
+    ticks.forEach(t => {
+      svg.append(s('line', { class: 'grid-l', x1: mL, x2: w - mR, y1: yAt(t), y2: yAt(t) }));
+      svg.append(s('text', { x: mL - 8, y: yAt(t) + 4, 'text-anchor': 'end' }, nf(t)));
+    });
+    const every = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(iw / 58))));
+    points.forEach((p, i) => {
+      if ((n - 1 - i) % every === 0) svg.append(s('text', { x: xAt(i), y: H - 6, 'text-anchor': i === n - 1 && kind === 'line' ? 'end' : 'middle' }, p.label));
+    });
+
+    const marks = [];
+    let cross = null, dot = null;
+    if (kind === 'line') {
+      const path = points.map((p, i) => (i ? 'L' : 'M') + xAt(i).toFixed(1) + ' ' + yAt(p.value).toFixed(1)).join(' ');
+      svg.append(s('path', { d: path + ` L${xAt(n - 1)} ${yAt(0)} L${xAt(0)} ${yAt(0)} Z`, fill: 'rgba(76,141,255,.10)' }));
+      svg.append(s('path', { d: path, fill: 'none', stroke: '#4c8dff', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+      const last = points[n - 1];
+      svg.append(s('circle', { cx: xAt(n - 1), cy: yAt(last.value), r: 4.5, fill: '#4c8dff', stroke: '#131a27', 'stroke-width': 2 }));
+      svg.append(s('text', { class: 'lbl', x: xAt(n - 1) + 9, y: yAt(last.value) + 4 }, fmtShort(last.value)));
+      cross = s('line', { y1: mT, y2: mT + ih, stroke: '#46536b', 'stroke-width': 1, visibility: 'hidden' });
+      dot = s('circle', { r: 4.5, fill: '#86b3ff', stroke: '#131a27', 'stroke-width': 2, visibility: 'hidden' });
+      svg.append(cross, dot);
+    } else {
+      const bw = Math.max(2, Math.min(24, band - 2));
+      let maxI = 0;
+      points.forEach((p, i) => { if (p.value > points[maxI].value) maxI = i; });
+      points.forEach((p, i) => {
+        const x = xAt(i) - bw / 2, y0 = yAt(0), y = p.value ? Math.min(yAt(p.value), y0 - 2) : y0;
+        const r = Math.min(4, bw / 2, y0 - y);
+        const d = p.value ? `M${x} ${y0} V${y + r} Q${x} ${y} ${x + r} ${y} H${x + bw - r} Q${x + bw} ${y} ${x + bw} ${y + r} V${y0} Z` : '';
+        const bar = s('path', { class: 'bar', d });
+        marks.push(bar); svg.append(bar);
+      });
+      // selective direct label: only the peak
+      const lx = Math.min(Math.max(xAt(maxI), mL + 14), w - mR - 14);
+      svg.append(s('text', { class: 'lbl', x: lx, y: yAt(points[maxI].value) - 6, 'text-anchor': 'middle' }, fmtShort(points[maxI].value)));
+    }
+
+    // one hit layer for the whole plot: the pointer only has to be closest to a date
+    const hit = s('rect', { x: mL - 4, y: 0, width: iw + mR + 4, height: H, fill: 'transparent' });
+    let cur = -1;
+    const move = ev => {
+      const box = svg.getBoundingClientRect();
+      const px = (ev.clientX - box.left) * (w / box.width);
+      const i = kind === 'line'
+        ? Math.max(0, Math.min(n - 1, Math.round((px - mL) / (n === 1 ? 1 : iw / (n - 1)))))
+        : Math.max(0, Math.min(n - 1, Math.floor((px - mL) / band)));
+      if (i !== cur) {
+        if (marks[cur]) marks[cur].classList.remove('on');
+        cur = i;
+        if (marks[i]) marks[i].classList.add('on');
+        if (cross) {
+          cross.setAttribute('x1', xAt(i)); cross.setAttribute('x2', xAt(i)); cross.setAttribute('visibility', 'visible');
+          dot.setAttribute('cx', xAt(i)); dot.setAttribute('cy', yAt(points[i].value)); dot.setAttribute('visibility', 'visible');
+        }
+      }
+      showTip(ev.clientX, ev.clientY, fmt(points[i].value), points[i].label);
+    };
+    const leave = () => {
+      if (marks[cur]) marks[cur].classList.remove('on');
+      cur = -1; hideTip();
+      if (cross) { cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); }
+    };
+    hit.addEventListener('pointermove', move);
+    hit.addEventListener('pointerdown', move);
+    hit.addEventListener('pointerleave', lazyOff(leave));
+    hit.addEventListener('pointercancel', leave);
+    svg.append(hit);
+    return svg;
+  });
+}
+
+// rows: [{ label, value, note }]
+function hbars(rows, opts = {}) {
+  if (!rows.length || rows.every(r => !r.value)) return emptyChart(opts.emptyText);
+  const max = Math.max(...rows.map(r => r.value));
+  const box = h('div', { class: 'hbars' });
+  rows.forEach(r => {
+    const row = h('div', { class: 'hbar', tabindex: 0 },
+      h('span', { class: 'hl', title: r.label }, r.label),
+      h('span', { class: 'ht' }, r.value ? h('span', { class: 'hf', style: `--p:${Math.max(1, 100 * r.value / max).toFixed(1)}%` }) : null),
+      h('span', { class: 'hv' }, h('b', null, nf(r.value)), r.note ? ' ' + r.note : ''));
+    const on = ev => { row.classList.add('on'); const b = row.getBoundingClientRect(); showTip(ev.clientX ?? b.left + 40, ev.clientY ?? b.top, nf(r.value) + (opts.unit ? ' ' + opts.unit : ''), r.tip || r.label); };
+    const off = () => { row.classList.remove('on'); hideTip(); };
+    row.addEventListener('pointermove', on); row.addEventListener('pointerdown', on);
+    row.addEventListener('pointerleave', lazyOff(off)); row.addEventListener('focus', on); row.addEventListener('blur', off);
+    box.append(row);
+  });
+  return box;
+}
+
+// hours: [{ dow, hour, minutes }] -> 7 x 24 grid, one hue, light to strong
+function heatmap(hours) {
+  if (!hours.length) return emptyChart();
+  const grid = Array.from({ length: 7 }, () => new Array(24).fill(0));
+  hours.forEach(x => { if (grid[x.dow] && x.hour >= 0 && x.hour < 24) grid[x.dow][x.hour] = Number(x.minutes) || 0; });
+  const max = Math.max(1, ...grid.flat());
+  const wrap = h('div');
+  wrap.append(mount(w => {
+    const mL = 32, mT = 18, gap = 2;
+    const cw = (w - mL) / 24;
+    const ch = Math.max(17, Math.min(26, cw));
+    const H = mT + ch * 7;
+    const svg = s('svg', { viewBox: `0 0 ${w} ${H}`, role: 'img', 'aria-label': 'Minutos tocados por dia da semana e hora' });
+    const stepH = cw < 16 ? 6 : 3;
+    for (let hr = 0; hr < 24; hr += stepH) svg.append(s('text', { x: mL + cw * hr + cw / 2, y: 11, 'text-anchor': 'middle' }, hr + 'h'));
+    grid.forEach((row, d) => {
+      svg.append(s('text', { x: 0, y: mT + ch * d + ch / 2 + 4 }, DOW[d]));
+      row.forEach((v, hr) => {
+        const cell = s('rect', {
+          class: 'cell', x: mL + cw * hr + gap / 2, y: mT + ch * d + gap / 2, width: Math.max(2, cw - gap), height: ch - gap, rx: 3,
+          fill: v ? '#4c8dff' : '#1a2333', 'fill-opacity': v ? (0.18 + 0.82 * v / max).toFixed(2) : 1,
+        });
+        const on = ev => { cell.classList.add('on'); showTip(ev.clientX, ev.clientY, nf(v) + ' min', DOW[d] + ', ' + hr + 'h'); };
+        const off = () => { cell.classList.remove('on'); hideTip(); };
+        cell.addEventListener('pointermove', on); cell.addEventListener('pointerdown', on);
+        cell.addEventListener('pointerleave', lazyOff(off)); cell.addEventListener('pointercancel', off);
+        svg.append(cell);
+      });
+    });
+    return svg;
+  }));
+  const scale = h('div', { class: 'scale' }, 'menos');
+  [.18, .4, .6, .8, 1].forEach(o => scale.append(h('i', { style: `opacity:${o}` })));
+  scale.append('mais', h('span', { style: 'margin-left:auto' }, 'pico: ' + nf(max) + ' min em uma hora'));
+  wrap.append(scale);
+  return wrap;
+}
+
+function gauge(value, title, sub) {
+  const R = 52, C = Math.PI * R;
+  const has = value != null && isFinite(value);
+  const v = has ? Math.max(0, Math.min(100, Number(value))) : 0;
+  const svg = s('svg', { viewBox: '0 0 130 76', role: 'img', 'aria-label': title + ': ' + (has ? v + '%' : 'sem dados') });
+  const arc = 'M13 68 A52 52 0 0 1 117 68';
+  svg.append(s('path', { d: arc, fill: 'none', stroke: 'rgba(76,141,255,.16)', 'stroke-width': 10, 'stroke-linecap': 'round' }));
+  if (has && v > 0) svg.append(s('path', { d: arc, fill: 'none', stroke: '#4c8dff', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-dasharray': `${(C * v / 100).toFixed(1)} ${C.toFixed(1)}` }));
+  return h('div', { class: 'gauge' }, svg,
+    h('div', { class: 'gv' + (has ? '' : ' none') }, has ? pct(v) : 'sem dados'),
+    h('div', { class: 'gl' }, h('b', null, title), ' ', sub));
+}
+
+/* ------------------------------------------------------------------ shared pieces */
+function avatar(u, lg) {
+  const a = h('span', { class: 'avatar' + (lg ? ' lg' : '') });
+  const initial = ((u.name || u.email || '?').trim()[0] || '?').toUpperCase();
+  if (u.avatar && /^https:\/\//.test(u.avatar)) {
+    const img = h('img', { src: u.avatar, alt: '', referrerpolicy: 'no-referrer', loading: 'lazy' });
+    img.addEventListener('error', () => { a.replaceChildren(initial); });
+    a.append(img);
+  } else a.append(initial);
+  return a;
+}
+function badge(u) { const l = lic(u); return h('span', { class: 'badge ' + l.cls }, l.label); }
+function kpi(label, value, sub, opts = {}) {
+  return h('div', { class: 'kpi' + (opts.hero ? ' hero' : '') + (opts.wide ? ' wide' : '') },
+    h('div', { class: 'l' }, opts.dot ? h('i', { class: 'dot ' + opts.dot }) : null, label, opts.est ? h('span', { class: 'tag' }, 'estimado') : null),
+    h('div', { class: 'v' }, value),
+    sub ? h('div', { class: 's' }, sub) : null);
+}
+function userRow(u, action) {
+  const l = lic(u);
+  return h('div', { class: 'urow' },
+    avatar(u),
+    h('button', { class: 'who', type: 'button', onclick: () => openUser(u.id) }, h('b', null, u.name || u.email), h('span', { class: 'num' }, leftText(l) + (l.exp && !l.lifetime ? ', ' + dm(l.exp) : ''))),
+    action);
+}
+function renewBtn(u) {
+  return h('button', { class: 'pill', type: 'button', onclick: ev => renew30(u, ev.currentTarget) }, 'Registrar pagamento');
+}
+function periodSeg() {
+  const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Período' });
+  [7, 30, 90].forEach(n => seg.append(h('button', {
+    type: 'button', 'aria-pressed': String(S.days === n),
+    onclick: () => { if (S.days === n) return; S.days = n; renderTop(); load(['stats']); },
+  }, n + ' dias')));
+  return seg;
+}
+function fillDays(field) {                             // stats.days -> one point per calendar day of the period
+  const map = new Map((D.stats?.days || []).map(d => [String(d.day).slice(0, 10), Number(d[field]) || 0]));
+  if (![...map.values()].some(Boolean)) return [];
+  return lastDays(S.days).map(k => ({ label: dayLabel(k), value: map.get(k) || 0 }));
+}
+function sumDays(field) { return fillDays(field).reduce((a, p) => a + p.value, 0); }
+
+/* ------------------------------------------------------------------ views */
+const MENU = [
+  { id: 'overview', label: 'Visão geral', short: 'Geral', icon: 'M4 13h6V4H4z|M14 20h6v-9h-6z|M4 20h6v-3H4z|M14 7h6V4h-6z' },
+  { id: 'users', label: 'Usuários', short: 'Usuários', icon: 'M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19|M10 10.5a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5z|M20 19v-1.5a3.5 3.5 0 0 0-2.5-3.3|M15.5 4.2a3.25 3.25 0 0 1 0 6.1' },
+  { id: 'licenses', label: 'Licenças e receita', short: 'Licenças', icon: 'M3 7.5A1.5 1.5 0 0 1 4.5 6h15A1.5 1.5 0 0 1 21 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 16.5z|M3 10.5h18|M7 14.5h4' },
+  { id: 'usage', label: 'Uso do app', short: 'Uso', icon: 'M4 20V10|M10 20V4|M16 20v-8|M21 20H3' },
+  { id: 'marketing', label: 'Marketing', short: 'Marketing', icon: 'M4 10v4a1 1 0 0 0 1 1h2l5 4V5L7 9H5a1 1 0 0 0-1 1z|M16 9a4 4 0 0 1 0 6|M18.5 6.5a7.5 7.5 0 0 1 0 11' },
+  { id: 'settings', label: 'Configurações', short: 'Ajustes', icon: 'M4 7h10|M18 7h2|M4 17h2|M10 17h10|M16 9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z|M8 19.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z' },
+  { id: 'health', label: 'Saúde', short: 'Saúde', icon: 'M3 12h4l2.5-6 4 12 2.5-6h5' },
+];
+const SUBS = {
+  overview: 'Como está o negócio hoje.',
+  users: 'Todas as contas, com licença e uso.',
+  licenses: 'Quem vence, o que entrou e o que mudou.',
+  usage: 'O que as pessoas fazem dentro do app.',
+  marketing: 'Da visita na página de vendas até o cadastro.',
+  settings: 'Operação do app sem publicar versão nova.',
+  health: 'Erros, versões e armazenamento.',
+};
+
+function renderNav() {
+  const nav = $('#nav');
+  nav.replaceChildren(...MENU.map(m => {
+    const b = h('button', { type: 'button', 'aria-current': S.view === m.id ? 'page' : null, onclick: () => go(m.id) }, icon(m.icon));
+    b.append(h('span', { class: 'lg-label' }, matchMedia('(max-width: 860px)').matches ? m.short : m.label));
+    return b;
+  }));
+  const cur = nav.querySelector('[aria-current]');
+  if (cur && cur.scrollIntoView && matchMedia('(max-width: 860px)').matches) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
+}
+matchMedia('(max-width: 860px)').addEventListener('change', () => { if (!$('#shell').hidden) renderNav(); });
+
+function go(id) {
+  S.view = id; S.shown = 60;
+  try { history.replaceState(null, '', '#' + id); } catch (_) {}
+  hideTip(); renderNav(); render();
+  scrollTo(0, 0);
+}
+function renderTop() {
+  const m = MENU.find(x => x.id === S.view);
+  const right = h('div', { class: 'right' });
+  if (['overview', 'usage', 'marketing'].includes(S.view)) right.append(periodSeg());
+  right.append(h('span', { class: 'stamp' }, S.loadedAt ? 'Atualizado às ' + two(S.loadedAt.getHours()) + ':' + two(S.loadedAt.getMinutes()) : ''));
+  $('#topbar').replaceChildren(h('h1', null, m.label), right, h('p', { class: 'sub' }, SUBS[S.view]));
+}
+function render() {
+  charts.forEach(el => { if (ro) ro.unobserve(el); });
+  charts.clear();
+  renderTop();
+  const view = $('#view');
+  view.replaceChildren(VIEWS[S.view]());
+}
+
+const VIEWS = {
+  /* ---------------------------------------------- 1. overview */
+  overview() {
+    const root = h('div', { class: 'stack' });
+    const g = guard(['users']);
+    if (g) root.append(h('section', { class: 'card' }, g));
+    else {
+      const c = summary();
+      root.append(h('div', { class: 'kpis' },
+        kpi('MRR', brl(c.mrr), plural(c.paid, 'assinante ativo', 'assinantes ativos') + ' x ' + brl(PRICE), { hero: true, est: true }),
+        kpi('Contas totais', nf(c.total), c.life ? plural(c.life, 'vitalícia', 'vitalícias') : null),
+        kpi('Novas em 7 dias', nf(c.new7), nf(c.new30) + ' em 30 dias'),
+        kpi('Em teste', nf(c.trial), null, { dot: 'blue' }),
+        kpi('Assinantes', nf(c.paid), null, { dot: 'green' }),
+        kpi('Vencidos', nf(c.expired), c.blocked ? plural(c.blocked, 'bloqueado', 'bloqueados') : null, { dot: 'red' }),
+        kpi('Vencem em 7 dias', nf(c.soon7), null, { dot: 'amber' }),
+        kpi('Conversão teste para pago', pct(c.conv), c.conv == null ? 'precisa de testes encerrados' : nf(c.paid) + ' pagantes de ' + nf(c.paid + c.expiredTrial) + ' que já passaram pelo teste', { est: true, wide: true })));
+    }
+
+    root.append(card('Funil', 'últimos ' + S.days + ' dias, pessoas únicas', ['stats', 'users'], c => {
+      const f = D.stats.funnel || {};
+      const steps = [
+        ['Visitaram a página', f.visitors], ['Ligaram a demo', f.demo], ['Demo até o fim', f.demo_full], ['Clicaram no CTA', f.cta],
+        ['Criaram conta', f.signups], ['Tocaram a primeira vez', f.first_play], ['Instalaram', f.installed], ['Pagantes hoje', summary().paid],
+      ].map(([label, v]) => ({ label, v: Number(v) || 0 }));
+      if (steps.slice(0, 7).every(x => !x.v)) { c.append(emptyChart()); return; }
+      const max = Math.max(...steps.map(x => x.v));
+      const box = h('div', { class: 'funnel' });
+      steps.forEach((st, i) => {
+        const prev = i ? steps[i - 1].v : 0;
+        let drop = '';
+        if (i && prev > 0) { const d = Math.round(100 * (st.v - prev) / prev); drop = d <= 0 ? 'queda de ' + Math.abs(d) + '%' : 'alta de ' + d + '%'; }
+        box.append(h('div', { class: 'fstep' },
+          h('span', { class: 'fl' }, st.label), h('span', { class: 'fv' }, nf(st.v)),
+          h('span', { class: 'fcol' }, h('span', { class: 'fbar' + (st.v ? '' : ' zero'), style: `--p:${st.v ? Math.max(2, 100 * st.v / max).toFixed(1) : 0}%` })),
+          h('span', { class: 'fd' }, drop)));
+      });
+      c.append(box);
+    }));
+
+    const two = h('div', { class: 'grid g2' });
+    two.append(card('Cadastros por dia', 'pela data de criação da conta', ['users'], (c, head) => {
+      const counts = new Map();
+      D.users.forEach(u => { const k = dayKey(u.created_at); counts.set(k, (counts.get(k) || 0) + 1); });
+      const pts = lastDays(S.days).map(k => ({ label: dayLabel(k), value: counts.get(k) || 0 }));
+      head.append(h('span', { class: 'total' }, nf(pts.reduce((a, p) => a + p.value, 0))));
+      c.append(seriesChart('line', pts, { unit: 'cadastros', aria: 'Cadastros por dia', emptyText: 'Nenhum cadastro nesse período' }));
+    }));
+    two.append(card('Usuários ativos por dia', 'abriram o app ou tocaram', ['stats'], c => {
+      c.append(seriesChart('bar', fillDays('active_users'), { unit: 'ativos', aria: 'Usuários ativos por dia' }));
+    }));
+    root.append(two);
+
+    root.append(card('Vencem nos próximos 7 dias', null, ['users'], c => {
+      const list = D.users.filter(u => expiresIn(u, 7)).sort((a, b) => new Date(a.expires_at) - new Date(b.expires_at));
+      if (!list.length) { c.append(h('p', { class: 'none-line' }, 'Ninguém vence nos próximos 7 dias.')); return; }
+      list.slice(0, 12).forEach(u => c.append(userRow(u, renewBtn(u))));
+      if (list.length > 12) c.append(h('div', { class: 'more' }, h('button', { class: 'pill', type: 'button', onclick: () => go('licenses') }, 'Ver os ' + nf(list.length))));
+    }));
+    return root;
+  },
+
+  /* ---------------------------------------------- 2. users */
+  users() {
+    const root = h('div');
+    const g = guard(['users']);
+    if (g) { root.append(h('section', { class: 'card' }, g)); return root; }
+    const FILTERS = [
+      ['all', 'Todos', () => true],
+      ['trial', 'Em teste', u => lic(u).key === 'trial'],
+      ['paid', 'Assinantes', u => lic(u).key === 'paid'],
+      ['expired', 'Vencidos', u => ['expired', 'none'].includes(lic(u).key)],
+      ['soon3', 'Vence em 3 dias', u => expiresIn(u, 3)],
+      ['never', 'Nunca tocou', u => !Number(u.plays) && !Number(u.minutes)],
+      ['blocked', 'Bloqueados', u => !!u.blocked],
+      ['google', 'Google', u => u.provider === 'google'],
+      ['email', 'E-mail', u => u.provider === 'email'],
+    ];
+    const COLS = [
+      ['name', 'Conta'], ['expires_at', 'Licença'], ['plan', 'Plano'], ['created_at', 'Criada'], ['last_seen', 'Último acesso'], ['minutes', 'Minutos', 'n'], ['plays', 'Plays', 'n'],
+    ];
+    const chips = h('div', { class: 'chips', role: 'group', 'aria-label': 'Filtros' });
+    FILTERS.forEach(([id, label, fn]) => chips.append(h('button', {
+      class: 'pill', type: 'button', 'aria-pressed': String(S.filter === id),
+      onclick: () => { S.filter = id; S.shown = 60; chips.querySelectorAll('.pill').forEach(b => b.setAttribute('aria-pressed', 'false')); chips.children[FILTERS.findIndex(f => f[0] === id)].setAttribute('aria-pressed', 'true'); drawList(); },
+    }, label, h('span', { class: 'count' }, nf(D.users.filter(fn).length)))));
+    const search = h('div', { class: 'search' }, icon('M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z|M20 20l-4-4'),
+      h('input', { type: 'search', placeholder: 'Buscar por nome ou e-mail', value: S.query, 'aria-label': 'Buscar', autocomplete: 'off', oninput: ev => { S.query = ev.target.value; S.shown = 60; drawList(); } }));
+    const sortSel = h('select', { class: 'input sortsel', 'aria-label': 'Ordenar por', onchange: ev => { const [k, d] = ev.target.value.split(':'); S.sort = { key: k, dir: Number(d) }; drawList(); } });
+    [['created_at:-1', 'Mais novas primeiro'], ['created_at:1', 'Mais antigas primeiro'], ['expires_at:1', 'Vencem antes'], ['last_seen:-1', 'Acesso mais recente'], ['minutes:-1', 'Mais minutos tocados'], ['name:1', 'Nome de A a Z']]
+      .forEach(([v, l]) => sortSel.append(h('option', { value: v }, l)));
+    sortSel.value = S.sort.key + ':' + S.sort.dir;
+    const listCard = h('section', { class: 'card' });
+    root.append(h('div', { class: 'tools' }, search, chips, sortSel), listCard);
+
+    function sortVal(u, k) {
+      if (k === 'name') return (u.name || u.email || '').toLowerCase();
+      if (k === 'plan') return u.plan || '';
+      if (k === 'minutes' || k === 'plays') return Number(u[k]) || 0;
+      return u[k] ? new Date(u[k]).getTime() : 0;
+    }
+    function drawList() {
+      const q = S.query.trim().toLowerCase();
+      const fn = FILTERS.find(f => f[0] === S.filter)[2];
+      const rows = D.users.filter(u => fn(u) && (!q || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)));
+      rows.sort((a, b) => { const x = sortVal(a, S.sort.key), y = sortVal(b, S.sort.key); return (x > y ? 1 : x < y ? -1 : 0) * S.sort.dir; });
+      const head = h('div', { class: 'card-head' }, h('h2', null, plural(rows.length, 'conta', 'contas')), h('span', { class: 'hint' }, 'toque em uma conta para abrir a ficha'));
+      if (!rows.length) { listCard.replaceChildren(head, h('p', { class: 'none-line' }, D.users.length ? 'Nenhuma conta com esse filtro.' : 'Ainda não há contas criadas.')); return; }
+      const thead = h('tr');
+      COLS.forEach(([k, label, cls]) => thead.append(h('th', {
+        class: 'sortable' + (cls ? ' ' + cls : ''), scope: 'col', tabindex: 0,
+        'aria-sort': S.sort.key === k ? (S.sort.dir === 1 ? 'ascending' : 'descending') : null,
+        onclick: () => { S.sort = { key: k, dir: S.sort.key === k ? -S.sort.dir : (k === 'name' ? 1 : -1) }; sortSel.value = S.sort.key + ':' + S.sort.dir; drawList(); },
+        onkeydown: ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.currentTarget.click(); } },
+      }, label)));
+      const body = h('tbody');
+      rows.slice(0, S.shown).forEach(u => {
+        const l = lic(u);
+        body.append(h('tr', { class: 'click', tabindex: 0, onclick: () => openUser(u.id), onkeydown: ev => { if (ev.key === 'Enter') openUser(u.id); } },
+          h('td', { class: 'lead' }, h('div', { class: 'ucell' }, avatar(u), h('div', null, h('b', null, u.name || u.email), h('span', null, u.name ? u.email : (u.provider === 'google' ? 'Google' : 'e-mail e senha'))))),
+          h('td', { 'data-l': 'Licença', class: 'full' }, h('span', { style: 'display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end' }, badge(u), h('span', { class: 'num', style: 'color:var(--muted);font-size:12.5px' }, leftText(l)))),
+          h('td', { 'data-l': 'Plano', class: 'mut hide-m' }, u.plan || 'sem plano'),
+          h('td', { 'data-l': 'Criada', class: 'mut num hide-m' }, dmy(u.created_at)),
+          h('td', { 'data-l': 'Último acesso', class: 'mut num' }, ago(u.last_seen || u.last_sign_in_at)),
+          h('td', { 'data-l': 'Minutos', class: 'n' }, nf(u.minutes)),
+          h('td', { 'data-l': 'Plays', class: 'n' }, nf(u.plays))));
+      });
+      listCard.replaceChildren(head, h('div', { class: 'tablewrap' }, h('table', { class: 'rt users' }, h('thead', null, thead), body)));
+      if (rows.length > S.shown) listCard.append(h('div', { class: 'more' }, h('button', { class: 'pill', type: 'button', onclick: () => { S.shown += 60; drawList(); } }, 'Mostrar mais ' + nf(Math.min(60, rows.length - S.shown)))));
+    }
+    drawList();
+    return root;
+  },
+
+  /* ---------------------------------------------- 3. licenses and revenue */
+  licenses() {
+    const root = h('div', { class: 'stack' });
+    const lists = h('div', { class: 'grid g3', style: 'align-items:start' });
+    const now = Date.now();
+    const bucket = (title, hint, test) => card(title, hint, ['users'], (c, head) => {
+      const list = D.users.filter(u => { const l = lic(u); return !l.blocked && !l.lifetime && !l.expired && test(l.exp - now); }).sort((a, b) => new Date(a.expires_at) - new Date(b.expires_at));
+      head.append(h('span', { class: 'total' }, nf(list.length)));
+      if (!list.length) { c.append(h('p', { class: 'none-line' }, 'Ninguém nessa janela.')); return; }
+      const sc = h('div', { class: 'scrolly' });
+      list.forEach(u => sc.append(userRow(u, renewBtn(u))));
+      c.append(sc);
+    });
+    lists.append(bucket('Vencem hoje', 'nas próximas 24 h', ms => ms <= DAY), bucket('Em 3 dias', 'de 1 a 3 dias', ms => ms > DAY && ms <= 3 * DAY), bucket('Em 7 dias', 'de 3 a 7 dias', ms => ms > 3 * DAY && ms <= 7 * DAY));
+    root.append(lists);
+
+    root.append(card('Receita por mês', null, ['log'], (c, head) => {
+      head.querySelector('h2').after(h('span', { class: 'tag' }, 'estimado'));
+      // a paid extension = a log row that ends on plan "mensal" with a later expiry; months added x price
+      const byMonth = new Map();
+      D.log.forEach(r => {
+        if (r.new_plan !== 'mensal' || !r.new_expires) return;
+        const ne = new Date(r.new_expires).getTime();
+        if (ne > Date.now() + LIFETIME_MS) return;
+        const base = Math.max(r.old_expires ? new Date(r.old_expires).getTime() : 0, new Date(r.created_at).getTime());
+        const added = (ne - base) / DAY;
+        if (added < 20) return;
+        const k = dayKey(r.created_at).slice(0, 7);
+        byMonth.set(k, (byMonth.get(k) || 0) + Math.max(1, Math.round(added / 30)) * PRICE);
+      });
+      if (!byMonth.size) { c.append(emptyChart('Ainda sem renovações registradas')); c.append(h('p', { class: 'none-line' }, 'Conta aqui toda renovação feita no plano mensal pelo painel.')); return; }
+      const months = [];
+      const d = new Date(); d.setDate(1);
+      for (let i = 11; i >= 0; i--) { const x = new Date(d.getFullYear(), d.getMonth() - i, 1); months.push(x.getFullYear() + '-' + two(x.getMonth() + 1)); }
+      const names = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+      const first = months.findIndex(k => byMonth.has(k));
+      const pts = months.slice(Math.max(0, Math.min(first, 6))).map(k => ({ label: names[Number(k.slice(5)) - 1] + '/' + k.slice(2, 4), value: Math.round((byMonth.get(k) || 0) * 100) / 100 }));
+      c.append(seriesChart('bar', pts, { fmt: brl, fmtShort: v => 'R$ ' + nf(Math.round(v)), aria: 'Receita estimada por mês', height: 210 }));
+      c.append(h('p', { class: 'none-line' }, 'Cada renovação no plano mensal conta ' + brl(PRICE) + ' por mês adicionado, no mês em que foi lançada.'));
+    }));
+
+    root.append(card('Registro de alterações', 'últimas 200', ['log'], c => {
+      if (!D.log.length) { c.append(h('p', { class: 'none-line' }, 'Nenhuma alteração de licença até agora.')); return; }
+      const body = h('tbody');
+      D.log.slice(0, S.shown).forEach(r => body.append(h('tr', null,
+        h('td', { class: 'lead' }, h('div', { class: 'ucell' }, h('div', null, h('b', null, r.action), h('span', null, r.user_email || 'conta removida')))),
+        h('td', { 'data-l': 'Quando', class: 'mut num' }, dthm(r.created_at)),
+        h('td', { 'data-l': 'Validade', class: 'num' }, (r.old_expires ? fmtExp(r.old_expires) : 'sem data') + ' → ' + (r.new_expires ? fmtExp(r.new_expires) : 'sem data')),
+        h('td', { 'data-l': 'Plano', class: 'mut' }, (r.old_plan || 'nenhum') + (r.new_plan && r.new_plan !== r.old_plan ? ' → ' + r.new_plan : '')),
+        h('td', { 'data-l': 'Por', class: 'mut' }, r.admin_email || ''))));
+      c.append(h('div', { class: 'tablewrap' }, h('table', { class: 'rt' },
+        h('thead', null, h('tr', null, ...['Ação e conta', 'Quando', 'Validade', 'Plano', 'Por'].map(t => h('th', { scope: 'col' }, t)))), body)));
+      if (D.log.length > S.shown) c.append(h('div', { class: 'more' }, h('button', { class: 'pill', type: 'button', onclick: () => { S.shown += 60; render(); } }, 'Mostrar mais')));
+    }));
+    return root;
+  },
+
+  /* ---------------------------------------------- 4. app usage */
+  usage() {
+    const root = h('div', { class: 'stack' });
+    const two = h('div', { class: 'grid g2' });
+    two.append(card('Ativos por dia', 'pessoas que abriram ou tocaram', ['stats'], c => c.append(seriesChart('bar', fillDays('active_users'), { unit: 'ativos', aria: 'Ativos por dia' }))));
+    two.append(card('Minutos tocados por dia', null, ['stats'], (c, head) => {
+      head.append(h('span', { class: 'total' }, nf(sumDays('minutes')) + ' min'));
+      c.append(seriesChart('line', fillDays('minutes'), { unit: 'min', aria: 'Minutos tocados por dia' }));
+    }));
+    root.append(two);
+
+    root.append(card('Retenção', 'de todas as contas com idade suficiente', ['stats'], c => {
+      const r = D.stats.retention || {};
+      c.append(h('div', { class: 'gauges' }, gauge(r.d1, 'D1', 'voltou depois de 1 dia'), gauge(r.d7, 'D7', 'voltou depois de 7 dias'), gauge(r.d30, 'D30', 'voltou depois de 30 dias')));
+    }));
+
+    const two2 = h('div', { class: 'grid g2' });
+    two2.append(card('Tons mais tocados', 'minutos por tom, de C a B', ['stats'], c => {
+      const map = new Map((D.stats.keys || []).map(k => [k.key, k]));
+      const extra = (D.stats.keys || []).map(k => k.key).filter(k => k && !KEYS_ORDER.includes(k));
+      const rows = [...KEYS_ORDER, ...extra].map(k => ({ label: k, value: Number(map.get(k)?.minutes) || 0, note: 'min', tip: k + ': ' + plural(Number(map.get(k)?.plays) || 0, 'play', 'plays') }));
+      c.append(hbars(rows, { unit: 'min' }));
+    }));
+    two2.append(card('Quando tocam', 'minutos por dia da semana e hora, horário de Brasília', ['stats'], c => c.append(heatmap(D.stats.hours || []))));
+    root.append(two2);
+
+    const three = h('div', { class: 'grid g2' });
+    three.append(card('Aparelhos', 'pessoas que abriram o app', ['stats'], c => {
+      const rows = (D.stats.devices || []).map(d => ({ label: d.device || 'outro', value: Number(d.people) || 0 })).sort((a, b) => b.value - a.value);
+      c.append(hbars(rows, { unit: 'pessoas' }));
+    }));
+    three.append(card('Instalado ou navegador', 'como abrem o app', ['stats'], c => {
+      const i = D.stats.installed || {};
+      const rows = [{ label: 'Instalado', value: Number(i.standalone) || 0 }, { label: 'Navegador', value: Number(i.browser) || 0 }, { label: 'Offline pronto', value: Number(i.offline_ready) || 0, tip: 'Baixaram as faixas para tocar sem internet' }];
+      c.append(hbars(rows, { unit: 'pessoas' }));
+    }));
+    root.append(three);
+    return root;
+  },
+
+  /* ---------------------------------------------- 5. marketing */
+  marketing() {
+    const root = h('div', { class: 'stack' });
+    // four measures with very different sizes: small multiples, one scale each, never a shared dual axis
+    const multi = h('div', { class: 'grid g2' });
+    [['page_view', 'Visitas', 'visitas'], ['demo_on', 'Demo ligada', 'vezes'], ['demo_end', 'Demo até o fim', 'vezes'], ['cta_click', 'Cliques no CTA', 'cliques']].forEach(([f, title, unit]) => {
+      multi.append(card(title, 'por dia', ['stats'], (c, head) => {
+        head.append(h('span', { class: 'total' }, nf(sumDays(f))));
+        c.append(seriesChart('bar', fillDays(f), { unit, aria: title + ' por dia', height: 150 }));
+      }));
+    });
+    root.append(multi);
+
+    root.append(card('Origens', 'de onde vem quem visita, com a taxa de cada etapa', ['stats'], c => {
+      const src = D.stats.sources || [];
+      if (!src.length) { c.append(emptyChart()); return; }
+      const rate = (a, b) => b > 0 ? ' (' + Math.round(100 * a / b) + '%)' : '';
+      const body = h('tbody');
+      src.forEach(r => body.append(h('tr', null,
+        h('td', { class: 'lead' }, h('div', { class: 'ucell' }, h('div', null, h('b', null, r.source || 'direto')))),
+        h('td', { 'data-l': 'Visitantes', class: 'n' }, nf(r.visitors)),
+        h('td', { 'data-l': 'Ligaram a demo', class: 'n' }, h('span', null, nf(r.demo), h('span', { style: 'color:var(--muted)' }, rate(r.demo, r.visitors)))),
+        h('td', { 'data-l': 'Clicaram no CTA', class: 'n' }, h('span', null, nf(r.cta), h('span', { style: 'color:var(--muted)' }, rate(r.cta, r.demo)))),
+        h('td', { 'data-l': 'Cadastros', class: 'n' }, h('span', null, nf(r.signups), h('span', { style: 'color:var(--muted)' }, rate(r.signups, r.cta)))),
+        h('td', { 'data-l': 'Visita para cadastro', class: 'n' }, r.visitors > 0 ? (100 * r.signups / r.visitors).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : 'sem dados'))));
+      c.append(h('div', { class: 'tablewrap' }, h('table', { class: 'rt' },
+        h('thead', null, h('tr', null, h('th', { scope: 'col' }, 'Origem'), ...['Visitantes', 'Ligaram a demo', 'Clicaram no CTA', 'Cadastros', 'Visita para cadastro'].map(t => h('th', { scope: 'col', class: 'n' }, t)))), body)));
+      c.append(h('p', { class: 'none-line' }, 'Cada percentual compara com a etapa anterior.'));
+    }));
+
+    root.append(card('Tons testados na demo', 'toques por tom na página de vendas', ['stats'], c => {
+      const map = new Map((D.stats.demo_keys || []).map(k => [k.key, Number(k.plays) || 0]));
+      const extra = [...map.keys()].filter(k => k && !KEYS_ORDER.includes(k));
+      c.append(hbars([...KEYS_ORDER, ...extra].map(k => ({ label: k, value: map.get(k) || 0 })), { unit: 'toques' }));
+    }));
+    return root;
+  },
+
+  /* ---------------------------------------------- 6. settings */
+  settings() {
+    const root = h('div', { class: 'grid g2', style: 'align-items:start' });
+    const val = k => (D.settings || []).find(r => r.key === k)?.value;
+
+    root.append(card('Operação', 'cada campo salva sozinho', ['settings'], c => {
+      const field = (key, label, help, type, parse) => {
+        const input = h('input', { class: 'input', id: 'set_' + key, type, value: val(key) ?? '', inputmode: type === 'number' ? 'numeric' : null, min: type === 'number' ? 0 : null, max: type === 'number' ? 365 : null });
+        const btn = h('button', { class: 'btn alt sm', type: 'button', onclick: async () => {
+          const v = parse(input.value);
+          if (v === undefined) return toast('Valor inválido.', true);
+          await saveSetting(key, v, btn);
+        } }, 'Salvar');
+        c.append(h('div', { class: 'setrow' }, h('label', { for: 'set_' + key }, label), h('div', { class: 'line' }, input, btn), h('span', { class: 'help' }, help)));
+      };
+      field('trial_days', 'Dias de teste', 'Vale para contas criadas daqui para frente.', 'number', v => { const n = parseInt(v, 10); return Number.isInteger(n) && n >= 0 && n <= 365 ? n : undefined; });
+      field('price_label', 'Texto do preço', 'Aparece no app na hora de renovar.', 'text', v => v.trim());
+      field('renew_url', 'Link de renovação', 'Para onde o botão de renovar leva. Vazio esconde o botão.', 'url', v => { v = v.trim(); return !v || /^https:\/\//i.test(v) ? v : undefined; });
+    }));
+
+    const right = h('div', { class: 'stack' });
+    right.append(card('Aviso no app', 'mensagem curta no topo do app', ['settings'], c => {
+      const ta = h('textarea', { class: 'input', id: 'set_notice', maxlength: 180, placeholder: 'Ex.: Domingo tem tons novos no app.' });
+      ta.value = val('notice') || '';
+      const prev = h('div', { class: 'notice-prev' });
+      const paint = () => { const t = ta.value.trim(); prev.textContent = t || 'Sem aviso. Nada aparece no app.'; prev.classList.toggle('off', !t); };
+      ta.addEventListener('input', paint); paint();
+      const btn = h('button', { class: 'btn alt sm', type: 'button', onclick: () => saveSetting('notice', ta.value.trim(), btn) }, 'Salvar aviso');
+      const clear = h('button', { class: 'btn alt sm', type: 'button', onclick: () => { ta.value = ''; paint(); saveSetting('notice', '', clear); } }, 'Tirar aviso');
+      c.append(h('div', { class: 'stack', style: 'gap:10px' }, ta,
+        h('div', { class: 'phone' }, h('div', { class: 'bar' }, h('img', { src: '../mark.png', alt: '' }), 'King Pad', h('span', { class: 'tag', style: 'margin-left:auto' }, 'prévia')), prev),
+        h('div', { class: 'btnrow two' }, btn, clear)));
+    }));
+    right.append(card('Modo manutenção', null, ['settings'], c => {
+      const sw = h('input', { type: 'checkbox', class: 'switch', role: 'switch', id: 'set_maint', 'aria-label': 'Modo manutenção', checked: val('maintenance') === true });
+      sw.addEventListener('click', async ev => {
+        ev.preventDefault();
+        const turnOn = val('maintenance') !== true;
+        const ok = await confirmBox(turnOn
+          ? { title: 'Ligar o modo manutenção?', text: 'O app mostra a tela de manutenção para todo mundo até você desligar.', ok: 'Ligar manutenção', danger: true }
+          : { title: 'Desligar o modo manutenção?', text: 'O app volta a funcionar para todos.', ok: 'Desligar' });
+        if (ok) saveSetting('maintenance', turnOn, sw);
+      });
+      c.append(h('div', { class: 'switchrow' }, h('div', null, h('b', { style: 'font-weight:650' }, val('maintenance') === true ? 'Ligado agora' : 'Desligado'), h('p', { class: 'help', style: 'color:var(--muted);font-size:12.5px' }, 'Use só durante troca de faixas ou ajuste no banco.')), sw));
+    }));
+    root.append(right);
+
+    root.append(card('Administradores', 'quem pode abrir este painel', ['admins'], c => {
+      const me = (S.session?.user?.email || '').toLowerCase();
+      D.admins.forEach(a => {
+        const self = a.email === me;
+        const btn = self ? h('span', { class: 'tag' }, 'você') : h('button', { class: 'pill', type: 'button', onclick: async () => {
+          const ok = await confirmBox({ title: 'Remover administrador?', text: a.email + ' perde o acesso ao painel na hora.', ok: 'Remover', danger: true });
+          if (!ok) return;
+          if (S.demo) return toast('Modo demonstração: nada foi alterado.');
+          const { error } = await sb.from('admins').delete().eq('email', a.email);
+          if (error) return toast(explain(error), true);
+          toast('Administrador removido.'); load(['admins']);
+        } }, 'Remover');
+        c.append(h('div', { class: 'urow' }, avatar({ email: a.email }), h('div', { class: 'who', style: 'cursor:default;min-height:0' }, h('b', null, a.email), h('span', null, 'desde ' + dmy(a.created_at))), btn));
+      });
+      const input = h('input', { class: 'input', type: 'email', placeholder: 'email@exemplo.com', 'aria-label': 'E-mail do novo administrador', autocomplete: 'off', inputmode: 'email' });
+      const add = h('button', { class: 'btn sm', type: 'button', onclick: async () => {
+        const email = input.value.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast('Digite um e-mail válido.', true);
+        if (D.admins.some(a => a.email === email)) return toast('Esse e-mail já é administrador.');
+        if (S.demo) return toast('Modo demonstração: nada foi alterado.');
+        add.disabled = true;
+        const { error } = await sb.from('admins').insert({ email });
+        add.disabled = false;
+        if (error) return toast(explain(error), true);
+        toast('Administrador adicionado.'); load(['admins']);
+      } }, 'Adicionar');
+      c.append(h('div', { class: 'line2', style: 'margin-top:12px' }, input, add));
+    }));
+    return root;
+  },
+
+  /* ---------------------------------------------- 7. health */
+  health() {
+    const root = h('div', { class: 'stack' });
+    root.append(h('section', { class: 'card' }, h('div', { class: 'switchrow' },
+      h('div', null, h('b', { style: 'font-weight:650' }, 'Dados do painel'), h('p', { style: 'color:var(--muted);font-size:13px' }, S.loadedAt ? 'Última atualização: ' + dthm(S.loadedAt) : 'Ainda não carregou')),
+      h('button', { class: 'pill primary', type: 'button', onclick: () => load().then(() => toast('Dados atualizados.')) }, 'Atualizar'))));
+
+    const two = h('div', { class: 'grid g2' });
+    two.append(card('Versões em uso', 'última versão aberta por pessoa, nos últimos ' + S.days + ' dias', ['stats'], c => {
+      c.append(hbars((D.stats.builds || []).map(b => ({ label: b.build || 'sem versão', value: Number(b.people) || 0 })), { unit: 'pessoas' }));
+    }));
+    two.append(card('Armazenamento das faixas', 'bucket pads', ['stats'], c => {
+      const st = D.stats.storage || {};
+      const mb = (Number(st.bytes) || 0) / 1048576;
+      c.append(h('div', { class: 'grid g2', style: 'gap:10px' },
+        kpi('Arquivos', nf(st.files)),
+        kpi('Tamanho', mb >= 1024 ? (mb / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' GB' : mb.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' MB')));
+    }));
+    root.append(two);
+
+    root.append(card('Últimos erros', 'até 60, do mais novo para o mais antigo', ['stats'], c => {
+      const errs = D.stats.errors || [];
+      if (!errs.length) { c.append(h('p', { class: 'none-line' }, 'Nenhum erro registrado.')); return; }
+      const body = h('tbody');
+      errs.forEach(e => body.append(h('tr', null,
+        h('td', { class: 'lead wrapcell' }, h('b', { style: 'font-weight:600' }, e.message || 'erro sem mensagem')),
+        h('td', { 'data-l': 'Quando', class: 'mut num' }, dthm(e.created_at)),
+        h('td', { 'data-l': 'Onde', class: 'mut' }, e.place || 'não informado'),
+        h('td', { 'data-l': 'Versão', class: 'mut num' }, e.build || 'sem versão'),
+        h('td', { 'data-l': 'Aparelho', class: 'mut' }, e.device || 'não informado'),
+        h('td', { 'data-l': 'Conta', class: 'mut' }, e.email || 'visitante'))));
+      c.append(h('div', { class: 'tablewrap' }, h('table', { class: 'rt' }, h('thead', null, h('tr', null, ...['Mensagem', 'Quando', 'Onde', 'Versão', 'Aparelho', 'Conta'].map(t => h('th', { scope: 'col' }, t)))), body)));
+    }));
+    return root;
+  },
+};
+function fmtExp(d) { return new Date(d).getTime() > Date.now() + LIFETIME_MS ? 'vitalício' : dmy(d); }
+
+/* ------------------------------------------------------------------ actions */
+async function setLicense(u, args, okMsg, btn) {
+  if (S.demo) { toast('Modo demonstração: nada foi alterado.'); return false; }
+  if (btn) btn.disabled = true;
+  const { error } = await sb.rpc('admin_set_license', Object.assign({ p_user: u.id, p_action: '', p_days: null, p_expires: null, p_plan: null, p_blocked: null, p_note: null }, args));
+  if (btn) btn.disabled = false;
+  if (error) { toast(explain(error), true); return false; }
+  toast(okMsg);
+  await load(['users', 'log']);
+  return true;
+}
+function renew30(u, btn) { return setLicense(u, { p_action: 'pagamento mensal', p_days: 30, p_plan: 'mensal' }, 'Pagamento registrado para ' + (u.name || u.email) + '.', btn); }
+
+async function saveSetting(key, value, btn) {
+  if (S.demo) return toast('Modo demonstração: nada foi alterado.');
+  if (btn) btn.disabled = true;
+  const { error } = await sb.from('app_settings').upsert({ key, value, updated_at: new Date().toISOString() });
+  if (btn) btn.disabled = false;
+  if (error) return toast(explain(error), true);
+  toast('Salvo.');
+  load(['settings']);
+}
+
+function confirmBox({ title, text, ok, danger }) {
+  return new Promise(resolve => {
+    const dlg = $('#confirmDlg');
+    let done = false;
+    const finish = v => { if (done) return; done = true; dlg.close(); resolve(v); };
+    dlg.replaceChildren(h('div', { class: 'dlg' },
+      h('div', { class: 'dlg-head' }, h('div', { class: 't' }, h('h2', null, title), h('p', { style: 'margin-top:6px' }, text))),
+      h('div', { class: 'btnrow two' },
+        h('button', { class: 'btn alt', type: 'button', onclick: () => finish(false) }, 'Cancelar'),
+        h('button', { class: 'btn' + (danger ? ' danger solid' : ''), type: 'button', onclick: () => finish(true) }, ok))));
+    dlg.addEventListener('close', () => finish(false), { once: true });
+    dlg.showModal();
+  });
+}
+
+/* ------------------------------------------------------------------ user sheet */
+function openUser(id) {
+  const dlg = $('#userDlg');
+  const paint = () => {
+    const u = (D.users || []).find(x => x.id === id);
+    if (!u) { dlg.close(); return; }
+    const l = lic(u);
+    const isSelf = u.id === S.session?.user?.id;
+    const run = async (args, msg, btn) => { if (await setLicense(u, args, msg, btn)) paint(); };
+
+    const dateIn = h('input', { class: 'input', type: 'date', 'aria-label': 'Nova data de vencimento', value: l.exp && !l.lifetime ? dayKey(l.exp) : '' });
+    const note = h('textarea', { class: 'input', maxlength: 500, placeholder: 'Anotação interna sobre esta conta', 'aria-label': 'Nota' });
+    note.value = u.note || '';
+
+    // delete: first tap arms, second tap reveals the e-mail check, the typed e-mail unlocks the final button
+    const delBtn = h('button', { class: 'btn danger', type: 'button' }, 'Excluir conta');
+    const delBox = h('div', { class: 'sect', hidden: true });
+    const delInput = h('input', { class: 'input', type: 'email', autocomplete: 'off', placeholder: u.email, 'aria-label': 'Digite o e-mail da conta para confirmar' });
+    const delFinal = h('button', { class: 'btn danger solid', type: 'button', disabled: true }, 'Excluir definitivamente');
+    let armed = false, armTimer;
+    delBtn.addEventListener('click', () => {
+      if (!armed) { armed = true; delBtn.classList.add('armed'); delBtn.textContent = 'Toque de novo para confirmar'; armTimer = setTimeout(() => { armed = false; delBtn.classList.remove('armed'); delBtn.textContent = 'Excluir conta'; }, 4000); return; }
+      clearTimeout(armTimer); delBtn.hidden = true; delBox.hidden = false; delInput.focus();
+    });
+    delInput.addEventListener('input', () => { delFinal.disabled = delInput.value.trim().toLowerCase() !== (u.email || '').toLowerCase(); });
+    delFinal.addEventListener('click', async () => {
+      if (S.demo) return toast('Modo demonstração: nada foi alterado.');
+      delFinal.disabled = true;
+      const { error } = await sb.rpc('admin_delete_user', { p_user: u.id });
+      if (error) { delFinal.disabled = false; return toast(explain(error), true); }
+      dlg.close(); toast('Conta excluída.'); load(['users', 'log']);
+    });
+    delBox.append(h('p', { style: 'font-size:12.5px;color:#ffb3b5' }, 'Isso apaga a conta e a licença e não tem volta. Digite o e-mail da conta para liberar.'), delInput, delFinal);
+
+    dlg.replaceChildren(h('div', { class: 'dlg' },
+      h('div', { class: 'dlg-head' }, avatar(u, true),
+        h('div', { class: 't' }, h('h2', null, u.name || 'Sem nome'), h('p', null, u.email), h('p', null, (u.provider === 'google' ? 'Entrou com Google' : 'Entrou com e-mail e senha') + ', conta criada em ' + dmy(u.created_at))),
+        h('button', { class: 'pill ghost', type: 'button', style: 'align-self:flex-start', onclick: () => dlg.close() }, 'Fechar')),
+
+      h('div', { class: 'lic ' + l.cls },
+        h('div', { class: 'lic-top' },
+          h('div', { class: 'lic-days' }, l.lifetime ? 'Sem vencimento' : l.exp == null ? 'Sem licença' : l.expired ? 'Venceu ' + ago(l.exp) : nf(l.left), (!l.lifetime && !l.expired && l.exp != null) ? h('small', null, l.left === 1 ? 'dia restante' : 'dias restantes') : null),
+          badge(u)),
+        h('p', { class: 'num' }, 'Plano ' + (u.plan || 'nenhum') + (l.exp && !l.lifetime ? ', ' + (l.expired ? 'venceu em ' : 'vence em ') + dmy(l.exp) : ''))),
+
+      h('div', { class: 'rows' }, ...[
+        ['Minutos tocados', nf(u.minutes)], ['Plays', nf(u.plays)],
+        ['Último acesso', ago(u.last_seen || u.last_sign_in_at)], ['Aparelho', u.device || 'não informado'],
+        ['Instalado', u.installed ? 'sim' : 'não'], ['Versão', u.build || 'não informada'],
+        ['Origem', u.source || 'não identificada'], ['Último login', u.last_sign_in_at ? dthm(u.last_sign_in_at) : 'nunca'],
+      ].map(([k, v]) => h('div', null, h('span', { class: 'k' }, k), h('span', { class: 'v num' }, v)))),
+
+      h('div', { class: 'sect' }, h('h3', null, 'Pagamento recebido'),
+        h('p', { style: 'margin:0 0 8px;font-size:12.5px;color:var(--muted)' }, 'Soma 30 dias e marca o plano como mensal. É o que entra na receita do mês.'),
+        h('div', { class: 'btnrow' }, h('button', { class: 'btn sm', type: 'button', onclick: ev => run({ p_action: 'pagamento mensal', p_days: 30, p_plan: 'mensal' }, 'Pagamento registrado: +30 dias no plano mensal.', ev.currentTarget) }, 'Registrar pagamento'))),
+      h('div', { class: 'sect' }, h('h3', null, 'Somar dias'),
+        h('div', { class: 'btnrow' }, ...[7, 30, 365].map(n => h('button', { class: 'btn alt sm', type: 'button', onclick: ev => run({ p_action: '+' + n + ' dias', p_days: n }, '+' + n + ' dias aplicados.', ev.currentTarget) }, '+' + n + ' dias')))),
+
+      h('div', { class: 'sect' }, h('h3', null, 'Definir vencimento'),
+        h('div', { class: 'line2' }, dateIn, h('button', { class: 'btn alt sm', type: 'button', onclick: ev => {
+          if (!dateIn.value) return toast('Escolha uma data.', true);
+          const d = new Date(dateIn.value + 'T23:59:59');
+          run({ p_action: 'definir data ' + dmy(d), p_expires: d.toISOString() }, 'Vencimento em ' + dmy(d) + '.', ev.currentTarget);
+        } }, 'Definir'))),
+
+      h('div', { class: 'sect' }, h('h3', null, 'Plano'),
+        h('div', { class: 'btnrow' },
+          h('button', { class: 'btn alt sm', type: 'button', disabled: u.plan === 'teste', onclick: ev => run({ p_action: 'plano teste', p_plan: 'teste' }, 'Plano alterado para teste.', ev.currentTarget) }, 'Teste'),
+          h('button', { class: 'btn alt sm', type: 'button', disabled: u.plan === 'mensal', onclick: ev => run({ p_action: 'plano mensal', p_plan: 'mensal' }, 'Plano alterado para mensal.', ev.currentTarget) }, 'Mensal'),
+          h('button', { class: 'btn alt sm', type: 'button', disabled: l.lifetime, onclick: async ev => {
+            const btn = ev.currentTarget;
+            if (await confirmBox({ title: 'Tornar vitalício?', text: (u.name || u.email) + ' fica com acesso sem data de vencimento.', ok: 'Tornar vitalício' })) run({ p_action: 'tornar vitalício', p_expires: LIFETIME_DATE }, 'Conta vitalícia.', btn);
+          } }, 'Vitalício')),
+        h('p', { style: 'font-size:12.5px;color:var(--muted)' }, 'A receita estimada só conta renovações lançadas com o plano em mensal.')),
+
+      h('div', { class: 'sect' }, h('h3', null, 'Nota'), note,
+        h('button', { class: 'btn alt sm', type: 'button', onclick: ev => run({ p_action: 'nota', p_note: note.value.trim() }, 'Nota salva.', ev.currentTarget) }, 'Salvar nota')),
+
+      h('div', { class: 'dangerzone' },
+        h('button', { class: 'btn ' + (u.blocked ? 'alt' : 'danger'), type: 'button', disabled: isSelf, onclick: async ev => {
+          const btn = ev.currentTarget;
+          if (u.blocked) return run({ p_action: 'desbloquear', p_blocked: false }, 'Conta desbloqueada.', btn);
+          if (await confirmBox({ title: 'Bloquear esta conta?', text: (u.name || u.email) + ' perde o acesso às faixas até você desbloquear.', ok: 'Bloquear', danger: true })) run({ p_action: 'bloquear', p_blocked: true }, 'Conta bloqueada.', btn);
+        } }, u.blocked ? 'Desbloquear conta' : 'Bloquear conta'),
+        isSelf ? h('p', null, 'Esta é a sua conta: bloquear e excluir ficam desligados aqui.') : delBtn,
+        isSelf ? null : delBox)));
+  };
+  paint();
+  if (!dlg.open) dlg.showModal();
+  dlg.scrollTop = 0;
+}
+// tap on the backdrop closes either dialog
+['userDlg', 'confirmDlg'].forEach(id => $('#' + id).addEventListener('click', ev => { if (ev.target === ev.currentTarget) ev.currentTarget.close(); }));
+
+/* ------------------------------------------------------------------ gate and boot */
+function gate(title, text, actions, loading) {
+  $('#shell').hidden = true; $('#gate').hidden = false;
+  $('#gateCard').replaceChildren(h('img', { src: '../mark.png', alt: 'King Pad' }), h('h1', null, title),
+    h('p', null, text), loading ? h('div', { class: 'spinner' }) : h('div', { class: 'gate-actions' }, actions));
+}
+function enterPanel() {
+  $('#gate').hidden = true; $('#shell').hidden = false;
+  $('#whoEmail').textContent = S.session?.user?.email || '';
+  const hash = location.hash.slice(1);
+  if (MENU.some(m => m.id === hash)) S.view = hash;
+  renderNav(); render();
+}
+async function signOut() {
+  if (S.demo) return toast('Modo demonstração.');
+  if (!await confirmBox({ title: 'Sair do painel?', text: 'Você também sai do app neste aparelho.', ok: 'Sair' })) return;
+  try { await sb.auth.signOut(); } catch (_) {}
+  boot();
+}
+$('#outBtn').addEventListener('click', signOut);
+$('#outBtnM').addEventListener('click', signOut);
+
+let booting = false;
+async function boot() {
+  if (booting || S.demo) return;
+  booting = true;
+  try {
+    if (!window.supabase) {
+      gate('Não carregou', 'A biblioteca de conexão não abriu. Confira a internet.', h('button', { class: 'btn', type: 'button', onclick: () => location.reload() }, 'Tentar de novo'));
+      return;
+    }
+    if (!sb) {
+      sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+      let lastUser;
+      // never call Supabase inside this callback: defer with setTimeout 0
+      sb.auth.onAuthStateChange((_event, session) => {
+        const uid = session?.user?.id || null;
+        if (lastUser !== undefined && uid !== lastUser) setTimeout(boot, 0);
+        lastUser = uid;
+        if (session) S.session = session;
+      });
+    }
+    gate('Abrindo o painel', 'Conferindo o seu acesso.', null, true);
+    const { data, error } = await sb.auth.getSession();
+    if (error) throw error;
+    S.session = data.session;
+    if (!S.session) {
+      gate('Entre no app primeiro', 'O painel usa o mesmo login do King Pad. Entre no app e volte para esta página.', [
+        h('a', { class: 'btn', href: '../app/' }, 'Abrir o app'),
+        h('button', { class: 'btn alt', type: 'button', onclick: boot }, 'Já entrei, tentar de novo')]);
+      return;
+    }
+    const adm = await sb.rpc('is_admin');
+    if (adm.error) throw adm.error;
+    if (adm.data !== true) {
+      const card = $('#gateCard');
+      gate('Sem acesso', '', [
+        h('button', { class: 'btn', type: 'button', onclick: async () => { try { await sb.auth.signOut(); } catch (_) {} boot(); } }, 'Sair'),
+        h('a', { class: 'btn alt', href: '../app/' }, 'Voltar para o app')]);
+      card.querySelector('p').replaceChildren('A conta ', h('b', null, S.session.user.email), ' não é administradora do King Pad.');
+      return;
+    }
+    enterPanel();
+    load();
+  } catch (err) {
+    gate('Não abriu', explain(err), h('button', { class: 'btn', type: 'button', onclick: boot }, 'Tentar de novo'));
+  } finally {
+    booting = false;
+  }
+}
+
+/* ------------------------------------------------------------------ demo data, for visual tests only (never runs by itself) */
+window.__demo = function (mode) {
+  S.demo = true;
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const pick = a => a[Math.floor(rnd() * a.length)];
+  const iso = ms => new Date(ms).toISOString();
+  const now = Date.now();
+  S.session = { user: { id: 'u0', email: 'demo@kingpad.test' } };
+  if (mode === 'empty') {
+    D.users = []; D.log = []; D.admins = [{ email: 'demo@kingpad.test', created_at: iso(now) }];
+    D.settings = [{ key: 'trial_days', value: 7 }, { key: 'price_label', value: 'R$ 14,90 por mês' }, { key: 'renew_url', value: '' }, { key: 'notice', value: '' }, { key: 'maintenance', value: false }];
+    D.stats = { days: [], keys: [], demo_keys: [], devices: [], installed: { standalone: 0, browser: 0, offline_ready: 0 }, hours: [], sources: [], funnel: {}, errors: [], builds: [], retention: { d1: null, d7: null, d30: null }, storage: { files: 0, bytes: 0 } };
+  } else {
+    const first = ['Ana', 'Lucas', 'Marcos', 'Priscila', 'João Pedro', 'Débora', 'Tiago', 'Rebeca', 'Samuel', 'Letícia', 'Maximiliano Alexandre', 'Ester'];
+    const last = ['Souza', 'Oliveira', 'Andrade', 'Ferreira dos Santos', 'Lima', 'Costa', 'Rocha', 'Almeida'];
+    D.users = Array.from({ length: 86 }, (_, i) => {
+      const created = now - Math.floor(rnd() * 80) * DAY - rnd() * DAY;
+      const r = rnd();
+      let plan = 'teste', exp = created + 7 * DAY;
+      if (i === 0) { plan = 'admin'; exp = Date.parse(LIFETIME_DATE); }
+      else if (r < .34) { plan = 'mensal'; exp = now + (rnd() * 34 - 3) * DAY; }
+      else if (r < .4) { plan = 'mensal'; exp = Date.parse(LIFETIME_DATE); }
+      else if (r < .6) { exp = now + rnd() * 7 * DAY; }
+      const name = rnd() < .85 ? pick(first) + ' ' + pick(last) : '';
+      const played = rnd() < .8;
+      return {
+        id: 'u' + i, email: (name || 'conta' + i).toLowerCase().normalize('NFD').replace(/[^a-z]/g, '').slice(0, 14) + i + '@gmail.com', name,
+        provider: rnd() < .6 ? 'google' : 'email', avatar: '', created_at: iso(created), last_sign_in_at: iso(now - rnd() * 20 * DAY),
+        expires_at: iso(exp), plan, blocked: rnd() < .04 && i > 0, note: i === 3 ? 'Pagou por Pix, pediu recibo.' : null,
+        last_seen: played ? iso(now - rnd() * 12 * DAY) : null, minutes: played ? Math.floor(rnd() * 900) : 0, plays: played ? Math.floor(rnd() * 120) + 1 : 0,
+        installed: rnd() < .5, device: pick(['iPhone', 'Android', 'iPad', 'desktop']), build: pick(['41', '41', '40', '39']), source: pick(['instagram', 'direto', 'whatsapp', 'google', null]),
+      };
+    });
+    const days = lastDays(90).map((k, i) => {
+      const pv = Math.floor(40 + rnd() * 160 + i * .8);
+      return { day: k, page_view: pv, offer_view: Math.floor(pv * .6), demo_on: Math.floor(pv * .42), demo_end: Math.floor(pv * .18), cta_click: Math.floor(pv * .11), signup: Math.floor(pv * .03), app_open: Math.floor(20 + rnd() * 40), play_start: Math.floor(30 + rnd() * 60), minutes: Math.floor(200 + rnd() * 1400), active_users: Math.floor(8 + rnd() * 30 + i * .15) };
+    });
+    const hours = [];
+    for (let d = 0; d < 7; d++) for (let hr = 6; hr < 24; hr++) { const w = (d === 0 ? 3 : d === 3 ? 1.6 : d === 6 ? 1.4 : .5) * (hr >= 18 && hr <= 21 ? 2.4 : hr >= 8 && hr <= 11 && d === 0 ? 3 : .6); const m = Math.floor(rnd() * 60 * w); if (m > 4) hours.push({ dow: d, hour: hr, minutes: m }); }
+    D.stats = {
+      days, hours,
+      keys: KEYS_ORDER.map(k => ({ key: k, plays: Math.floor(rnd() * 400) + 20, minutes: Math.floor(rnd() * 5200) + 300 })),
+      demo_keys: KEYS_ORDER.map(k => ({ key: k, plays: Math.floor(rnd() * 900) + 40 })),
+      devices: [{ device: 'iPhone', people: 48 }, { device: 'Android', people: 31 }, { device: 'desktop', people: 9 }, { device: 'iPad', people: 6 }],
+      installed: { standalone: 52, browser: 37, offline_ready: 29 },
+      sources: [{ source: 'instagram', visitors: 2140, demo: 960, cta: 233, signups: 61 }, { source: 'direto', visitors: 820, demo: 300, cta: 88, signups: 24 }, { source: 'whatsapp', visitors: 412, demo: 240, cta: 97, signups: 38 }, { source: 'google', visitors: 96, demo: 22, cta: 4, signups: 1 }, { source: 'youtube_video_de_lancamento_do_king_pad', visitors: 40, demo: 12, cta: 0, signups: 0 }],
+      funnel: { visitors: 3508, demo: 1534, demo_full: 640, cta: 422, signups: 124, first_play: 98, installed: 52 },
+      errors: Array.from({ length: 6 }, (_, i) => ({ created_at: iso(now - i * 9 * 36e5), message: pick(['NotAllowedError: play() failed because the user did not interact with the document first', 'Falha ao baixar faixa G/pad_2.m4a (503)', 'QuotaExceededError: storage full while caching stems']), place: pick(['startSound', 'offline', 'loadKey']), build: pick(['41', '40']), device: pick(['iPhone', 'Android']), email: i % 2 ? D.users[i + 2].email : null })),
+      builds: [{ build: '41', people: 58 }, { build: '40', people: 21 }, { build: '39', people: 7 }],
+      retention: { d1: 46, d7: 31, d30: null }, storage: { files: 28, bytes: 412 * 1048576 },
+    };
+    D.log = Array.from({ length: 34 }, (_, i) => {
+      const at = now - i * 4.3 * DAY - rnd() * DAY, u = D.users[1 + Math.floor(rnd() * 40)];
+      const isPay = rnd() < .75;
+      return { id: i, created_at: iso(at), user_id: u.id, user_email: u.email, admin_email: 'demo@kingpad.test', action: isPay ? '+30 dias' : pick(['bloquear', 'nota', 'plano mensal', 'tornar vitalício']), old_expires: iso(at + 2 * DAY), new_expires: iso(at + (isPay ? 32 : 2) * DAY), old_plan: rnd() < .3 ? 'teste' : 'mensal', new_plan: 'mensal', note: null };
+    });
+    D.settings = [{ key: 'trial_days', value: 7 }, { key: 'price_label', value: 'R$ 14,90 por mês' }, { key: 'renew_url', value: 'https://pay.exemplo.com/kingpad' }, { key: 'notice', value: 'Domingo tem tons novos no app.' }, { key: 'maintenance', value: false }];
+    D.admins = [{ email: 'demo@kingpad.test', created_at: iso(now - 40 * DAY) }, { email: 'socio@kingpad.test', created_at: iso(now - 12 * DAY) }];
+  }
+  ALL.forEach(n => { E[n] = null; });
+  S.loadedAt = new Date();
+  enterPanel();
+  return 'demo: ' + (mode || 'full');
+};
+window.__demoGo = id => go(id);
+window.__demoUser = i => openUser((D.users[i] || D.users[0]).id);
+
+boot();
+})();
+</script>
+</body>
+</html>

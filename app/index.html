@@ -246,6 +246,14 @@
   .install-help .btn { margin: 0; }
   .acct-foot { margin: 12px 0 0; font-size: 11.5px; color: var(--muted); text-align: center; }
 
+  #notice {
+    position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 8px); translate: -50% 0; z-index: 12; max-width: min(94vw, 640px);
+    display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; border-radius: 999px;
+    background: #1b2740; border: 1px solid rgba(76, 141, 255, .5); color: var(--text); font-size: 13px; line-height: 1.35;
+    box-shadow: 0 12px 32px -10px rgba(0, 0, 0, .7);
+  }
+  #maintenance { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; background: var(--bg); }
+
   /* Expired license */
   #paywall {
     position: fixed; inset: 0; z-index: 15; display: grid; place-items: center; padding: 16px;
@@ -430,12 +438,20 @@
   </div>
 </dialog>
 
+<div id="notice" hidden role="status"><span id="noticeText"></span><button class="pill ghost" id="noticeClose" type="button" aria-label="Fechar aviso">Fechar</button></div>
+<div id="maintenance" hidden>
+  <div class="auth-card" style="text-align:center">
+    <img class="auth-logo" src="mark.png" alt="" width="58" height="64" style="margin-inline:auto">
+    <h2>Voltamos já</h2>
+    <p class="sub">O King Pad está em manutenção rápida. Tente de novo em alguns minutos.</p>
+  </div>
+</div>
 <div id="paywall" hidden>
   <div class="auth-card">
     <img class="auth-logo" src="mark.png" alt="" width="58" height="64">
-    <h2>Sua licença terminou</h2>
-    <p class="sub">Renove para voltar a tocar. Seus volumes e sua conta continuam salvos.</p>
-    <a class="btn" href="../#oferta" style="display:grid;place-items:center;text-decoration:none">Renovar por R$ 14,90 por mês</a>
+    <h2 id="paywallTitle">Sua licença terminou</h2>
+    <p class="sub" id="paywallText">Renove para voltar a tocar. Seus volumes e sua conta continuam salvos.</p>
+    <a class="btn" id="paywallRenew" href="../#oferta" style="display:grid;place-items:center;text-decoration:none">Renovar por R$ 14,90 por mês</a>
     <button class="btn alt" id="paywallAccount" type="button" style="margin-top:8px">Minha conta</button>
   </div>
 </div>
@@ -458,7 +474,7 @@ const CFG = {
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.17';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-20.18';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -479,8 +495,28 @@ const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ levels: 
 const library = {};     // key -> [url | null] per stem
 const sb = supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey);
 let user = null;
+
+/* ---------- Usage events (feeds the admin BI; no personal content, just what was used) ---------- */
+const AID_KEY = 'kingpad.aid';
+const anonId = (() => { try { let v = localStorage.getItem(AID_KEY); if (!v) { v = (crypto.randomUUID?.() || String(Math.random()).slice(2)); localStorage.setItem(AID_KEY, v); } return v; } catch { return null; } })();
+const deviceKind = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desktop';
+let errorBudget = 5;
+function track(name, props = {}) {
+  if (!navigator.onLine) return;
+  let source = null;
+  try { source = localStorage.getItem('kingpad.src'); } catch {}
+  setTimeout(() => {   // never from inside an auth callback, never blocking the UI
+    sb.from('events').insert({ name, props, user_id: user?.id ?? null, anon_id: anonId, source, device: deviceKind, build: BUILD }).then(() => {}, () => {});
+  }, 0);
+}
+function trackError(where, message) {
+  if (errorBudget-- <= 0) return;
+  track('error', { where, message: String(message || '').slice(0, 300) });
+}
+window.addEventListener('error', (e) => trackError('window', e.message));
+window.addEventListener('unhandledrejection', (e) => trackError('promise', e.reason?.message || e.reason));
 let license = null;   // { expires_at, plan, created_at }
-const licenseExpired = () => !!license && Date.parse(license.expires_at) <= Date.now();
+const licenseExpired = () => !!license && (license.blocked === true || Date.parse(license.expires_at) <= Date.now());
 let libraryReady = false;
 const $ = (s) => document.querySelector(s);
 const statusEl = $('#status');
@@ -646,8 +682,10 @@ function startSound() {
   pairs.forEach((p) => p.start());
   state.on = true;
   setWake(true);
+  track('play_start', { key: state.key });
   return true;
 }
+setInterval(() => { if (state.on && document.visibilityState === 'visible') track('play_minute', { key: state.key }); }, 60 * 1000);
 
 // Tapping a key selects it and plays; the power button stops and resumes the selected key.
 function selectKey(key) {
@@ -678,6 +716,7 @@ const stable = {};
 const MANIFEST_KEY = 'kingpad.manifest';
 const stableId = (path, v) => `https://stems.kingpad.invalid/${encodeURI(path)}?v=${v}`;
 let libraryFor = null;
+let openedSent = false;
 
 async function loadLibrary(force) {
   if (!user || (!force && libraryFor === user.id)) return;
@@ -772,6 +811,7 @@ async function cacheStems() {
         done++;
       } catch {}
       info.textContent = done === urls.length ? 'Offline ok' : `Baixando ${done}/${urls.length}`;
+      if (done === urls.length && urls.length) { try { if (!localStorage.getItem('kingpad.offline.sent')) { localStorage.setItem('kingpad.offline.sent', '1'); track('offline_ready'); } } catch {} }
     }
     try { navigator.storage?.persist?.(); } catch {}
   } finally { caching = false; }
@@ -1015,18 +1055,31 @@ function renderAccount() {
   badge.textContent = left === 0 ? 'Licença vencida' : left === 1 ? 'Falta 1 dia' : `Faltam ${left} dias`;
 }
 
-function showPaywall() { if (state.on) stopSound(); paywall.hidden = false; render(); }
+function showPaywall() {
+  if (state.on) stopSound();
+  const blocked = license?.blocked === true;
+  $('#paywallTitle').textContent = blocked ? 'Conta bloqueada' : 'Sua licença terminou';
+  $('#paywallText').textContent = blocked ? 'O acesso desta conta foi suspenso. Fale com o suporte do King Pad.' : 'Renove para voltar a tocar. Seus volumes e sua conta continuam salvos.';
+  $('#paywallRenew').hidden = blocked;
+  paywall.hidden = false;
+  render();
+}
 function applyLicense() {
   renderAccount();
+  try { applyMaintenance(); } catch {}
   if (licenseExpired()) showPaywall(); else paywall.hidden = true;
 }
 async function loadLicense() {
   if (!user) return;
   try { const c = JSON.parse(localStorage.getItem(LIC_KEY)); if (c?.uid === user.id) license = c.lic; } catch {}   // offline fallback
   applyLicense();
-  const { data, error } = await sb.from('licenses').select('expires_at, plan, created_at').maybeSingle();
+  const { data, error } = await sb.from('licenses').select('*').maybeSingle();
   if (error || !data) return;
   license = data;
+  try {   // first time this account shows up on this device, within minutes of being created: that is a signup
+    const flag = `kingpad.signup.${user.id}`;
+    if (!localStorage.getItem(flag)) { localStorage.setItem(flag, '1'); if (Date.now() - Date.parse(data.created_at) < 15 * 60 * 1000) track('signup', { provider: user.app_metadata?.provider || 'email' }); }
+  } catch {}
   try { localStorage.setItem(LIC_KEY, JSON.stringify({ uid: user.id, lic: data })); } catch {}
   applyLicense();
   if (!licenseExpired() && !Object.values(library).flat().some(Boolean)) loadLibrary(true);   // just renewed: stems become readable
@@ -1053,7 +1106,7 @@ const isStandalone = () => matchMedia('(display-mode: standalone)').matches || n
 const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvent = null;   // Android/desktop Chrome hands us a native install prompt
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; renderSettings(); });
-window.addEventListener('appinstalled', () => { installEvent = null; renderSettings(); });
+window.addEventListener('appinstalled', () => { installEvent = null; renderSettings(); track('installed'); });
 
 // "Baixar o app" on the account screen: native prompt when the browser offers one, otherwise the step by step.
 $('#getApp').addEventListener('click', async () => {
@@ -1152,7 +1205,7 @@ function applySession(session) {
   authEl.hidden = !!user;
   if (!user && state.on) stopSound();
   if (!user) { libraryFor = null; license = null; paywall.hidden = true; $('#daysBadge').hidden = true; if (acct.open) acct.close(); }
-  else { renderAccount(); setTimeout(() => { loadLicense(); loadLibrary(); }, 0); }   // never call Supabase from inside the auth callback (it can deadlock)
+  else { renderAccount(); setTimeout(() => { loadLicense(); loadLibrary(); if (!openedSent) { openedSent = true; track('app_open', { standalone: String(matchMedia('(display-mode: standalone)').matches || navigator.standalone === true) }); } }, 0); }   // never call Supabase from inside the auth callback (it can deadlock)
   if (user) { $('#authPass').value = ''; say(''); if (libraryReady) { if (!warm.length) prewarm(); cacheStems(); } }
   render();
 }
@@ -1170,6 +1223,30 @@ async function checkVersion() {
 checkVersion();
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkVersion(); });
 setInterval(checkVersion, 5 * 60 * 1000);
+
+/* ---------- Operation settings (edited in the admin panel) ---------- */
+const settings = {};
+function applyMaintenance() { $('#maintenance').hidden = !(settings.maintenance === true && license?.plan !== 'admin'); }
+async function loadSettings() {
+  const { data, error } = await sb.from('app_settings').select('key, value');
+  if (error || !data) return;
+  for (const row of data) settings[row.key] = row.value;
+  const price = typeof settings.price_label === 'string' && settings.price_label ? settings.price_label : 'R$ 14,90 por mês';
+  $('#paywallRenew').textContent = `Renovar por ${price}`;
+  if (typeof settings.renew_url === 'string' && /^https:\/\//.test(settings.renew_url)) {
+    $('#paywallRenew').href = settings.renew_url;
+    $('#renewBtn').href = settings.renew_url;
+  }
+  const text = typeof settings.notice === 'string' ? settings.notice.trim() : '';
+  let dismissed = null;
+  try { dismissed = sessionStorage.getItem('kingpad.notice'); } catch {}
+  $('#noticeText').textContent = text;
+  $('#notice').hidden = !text || dismissed === text;
+  applyMaintenance();
+}
+$('#noticeClose').addEventListener('click', () => { try { sessionStorage.setItem('kingpad.notice', $('#noticeText').textContent); } catch {} $('#notice').hidden = true; });
+loadSettings();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadSettings(); });
 
 render();
 if (location.hash === '#cadastro') setAuthMode('signup');   // sales page CTA lands on the sign-up tab

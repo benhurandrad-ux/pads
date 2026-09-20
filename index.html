@@ -277,7 +277,7 @@ const CFG = {
 };
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
-const AUDIO_RE = /\.(mp3|wav|m4a|aac|ogg)$/i;
+const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
 
 /* ---------- State ---------- */
 const saved = (() => { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch { return {}; } })();
@@ -301,7 +301,7 @@ const statusEl = $('#status');
 document.documentElement.style.setProperty('--stems', CFG.stems);
 
 /* ---------- Audio engine ---------- */
-let ctx, masterGain, stemGains = [], pair = null, wakeLock = null;
+let ctx, masterGain, stemGains = [], pairs = [], wakeLock = null;
 
 function ensureAudio() {
   if (ctx) { if (ctx.state !== 'running') ctx.resume(); return; }
@@ -426,7 +426,8 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function stopSound() {
-  if (pair) { pair.kill(); pair = null; }
+  pairs.forEach((p) => p.kill());
+  pairs = [];
   state.on = false;
   setWake(false);
 }
@@ -434,9 +435,10 @@ function startSound() {
   const urls = library[state.key];
   if (!urls || !urls.some(Boolean)) return false;
   ensureAudio();
-  if (pair) pair.kill();
-  pair = new LoopPair(urls);
-  pair.start();
+  pairs.forEach((p) => p.kill());
+  // One loop per stem: stems can have different lengths and each one wraps around on its own.
+  pairs = urls.map((url, i) => url && new LoopPair(urls.map((u, j) => (j === i ? u : null)))).filter(Boolean);
+  pairs.forEach((p) => p.start());
   state.on = true;
   setWake(true);
   return true;
@@ -464,11 +466,13 @@ async function loadLibrary() {
   await Promise.all(KEYS.map(async ([key]) => {
     const urls = Array(CFG.stems).fill(null);
     const { data } = await bucket().list(key, { limit: 100 });
+    const stamp = Array(CFG.stems).fill(-1);
     for (const f of data || []) {
-      const n = +f.name;
-      if (n >= 1 && n <= CFG.stems) {
-        const v = Date.parse(f.updated_at || f.created_at || '') || 0;   // cache-bust when a stem is replaced
-        urls[n - 1] = `${bucket().getPublicUrl(`${key}/${n}`).data.publicUrl}?v=${v}`;
+      const n = parseInt(f.name, 10);   // "1" (sent by the app) or "1.mp3" (sent through the Supabase dashboard)
+      const v = Date.parse(f.updated_at || f.created_at || '') || 0;
+      if (n >= 1 && n <= CFG.stems && v > stamp[n - 1]) {   // newest wins when both exist
+        stamp[n - 1] = v;
+        urls[n - 1] = `${bucket().getPublicUrl(`${key}/${f.name}`).data.publicUrl}?v=${v}`;   // v = cache-bust on replace
       }
     }
     library[key] = urls;
@@ -542,7 +546,7 @@ async function handleFolder(fileList) {
 }
 
 async function handleKeyFiles(key, fileList) {
-  const files = [...fileList].filter((f) => AUDIO_RE.test(f.name) || f.type.startsWith('audio/'));
+  const files = [...fileList].filter((f) => AUDIO_RE.test(f.name));
   if (!files.length) return;
   try {
     const n = await storeFiles({ [key]: files });
@@ -556,7 +560,8 @@ const uploadError = (e) => e?.message === 'busy' ? 'Já tem um envio em andament
 
 async function clearKey(key) {
   if (state.key === key && state.on) stopSound();   // stop before its files go away
-  const { error } = await bucket().remove(Array.from({ length: CFG.stems }, (_, i) => `${key}/${i + 1}`));
+  const { data } = await bucket().list(key, { limit: 100 });
+  const { error } = await bucket().remove((data || []).map((f) => `${key}/${f.name}`));
   if (error) toast(uploadError(error));
   await loadLibrary();
 }

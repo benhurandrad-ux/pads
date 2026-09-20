@@ -7,8 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pads">
-<title>Pads</title>
+<meta name="apple-mobile-web-app-title" content="King Pad">
+<title>King Pad</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
 <style>
   :root {
     --bg: #0a0e16;
@@ -48,7 +51,8 @@
   }
 
   header { display: flex; align-items: center; gap: 12px; padding: 0 2px; }
-  header h1 { font-size: 16px; font-weight: 650; letter-spacing: -.01em; margin: 0; }
+  header h1 { font-size: 16px; font-weight: 650; letter-spacing: -.01em; margin: 0; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  header h1 img { height: 22px; width: auto; display: block; }
   #status { font-size: 13px; color: var(--muted); margin-right: auto; }
   #status b { color: var(--text); font-weight: 600; }
   #offlineInfo { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -133,6 +137,7 @@
     user-select: text; -webkit-user-select: text;
   }
   .auth-card { width: min(100%, 380px); background: #0f1521; border: 1px solid var(--line); border-radius: 22px; padding: 22px; }
+  .auth-logo { display: block; height: 64px; width: auto; margin: 2px 0 14px; }
   .auth-card h2 { margin: 0 0 4px; font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
   .auth-card p.sub { margin: 0 0 16px; font-size: 13px; color: var(--muted); line-height: 1.4; }
   .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--panel); border-radius: 12px; margin-bottom: 14px; }
@@ -188,7 +193,8 @@
 <body>
 <div id="auth" hidden>
   <form class="auth-card" id="authForm" novalidate>
-    <h2>Pads</h2>
+    <img class="auth-logo" src="mark.png" alt="" width="58" height="64">
+    <h2>King Pad</h2>
     <p class="sub" id="authSub">Entre para tocar.</p>
     <div class="seg" role="tablist">
       <button type="button" role="tab" id="tabLogin" aria-selected="true">Entrar</button>
@@ -210,7 +216,7 @@
 </div>
 <div class="app">
   <header>
-    <h1>Pads</h1>
+    <h1><img src="mark.png" alt="" width="20" height="22">King Pad</h1>
     <div id="status">Carregando…</div>
     <span id="offlineInfo"></span>
     <button class="pill ghost" id="logout">Sair</button>
@@ -235,13 +241,13 @@ const CFG = {
   bucket: 'pads',
   // Semitone correction per stem. "D/2": the CAM 2 file delivered in the D folder was recorded in C.
   transpose: { 'D/2': 2 },
-  google: false,    // flip to true once the Google provider is enabled in Supabase Auth
+  google: true,     // Google provider enabled in Supabase Auth (OAuth client in Google Cloud project "Pads Login")
   stems: 4,
   fade: 0.9,        // seconds, fade-in of the new key
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.9';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-20.11';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files

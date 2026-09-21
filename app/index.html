@@ -475,14 +475,14 @@ const CFG = {
   supabaseKey: 'sb_publishable_uu8BHH9W8FIZ5IylFURbyw_iOaOi40P',   // publishable key, safe in the browser
   bucket: 'pads',
   // Semitone correction per stem. "D/2": the CAM 2 file delivered in the D folder was recorded in C.
-  headroom: .7, transpose: { 'D/2': 2 },
+  headroom: .7, transpose: {},
   google: true,     // Google provider enabled in Supabase Auth (OAuth client in Google Cloud project "Pads Login")
   stems: 4,
   fade: 0.9,        // seconds, fade-in of the new key
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.21';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-20.23';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -612,7 +612,9 @@ class Voice {
       el.crossOrigin = 'anonymous';
       el.preload = 'auto';
       el.src = offline[url] || url;
-      const semis = CFG.transpose[`${this.key}/${i + 1}`];
+      // Keyed by file name: the original "DCAM 2.m4a" was recorded in C. The corrected "D CAM 2.m4a" plays untouched.
+      const file = decodeURIComponent((stable[url] || url).split('?')[0].split('/').pop());
+      const semis = CFG.transpose[file];
       if (semis) {   // pads have no tempo, so shifting pitch through the playback rate is transparent
         el.preservesPitch = el.webkitPreservesPitch = el.mozPreservesPitch = false;
         el.defaultPlaybackRate = el.playbackRate = 2 ** (semis / 12);

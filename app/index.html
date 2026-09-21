@@ -475,14 +475,14 @@ const CFG = {
   supabaseKey: 'sb_publishable_uu8BHH9W8FIZ5IylFURbyw_iOaOi40P',   // publishable key, safe in the browser
   bucket: 'pads',
   // Semitone correction per stem. "D/2": the CAM 2 file delivered in the D folder was recorded in C.
-  headroom: .7, transpose: {},
+  boost: 2, transpose: {},
   google: true,     // Google provider enabled in Supabase Auth (OAuth client in Google Cloud project "Pads Login")
   stems: 4,
   fade: 0.9,        // seconds, fade-in of the new key
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.23';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-20.24';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -577,7 +577,13 @@ function ensureAudio() {
   // Native hardware rate: forcing another rate makes phones resample twice and crackle. 'playback' asks for large, glitch-free buffers.
   try { ctx = new AC({ latencyHint: 'playback' }); } catch { ctx = new AC(); }
   masterGain = ctx.createGain();
-  masterGain.connect(ctx.destination);
+  // Master is boosted (+6 dB) and a fast limiter catches the peaks, so it gets loud without ever clipping.
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20;
+  limiter.attack.value = .002; limiter.release.value = .25;
+  const trim = ctx.createGain();
+  trim.gain.value = .84;   // the compressor adds about 1.5 dB of make-up gain; this keeps the ceiling under 0 dBFS
+  masterGain.connect(limiter).connect(trim).connect(ctx.destination);
   for (let i = 0; i < CFG.stems; i++) {
     const g = ctx.createGain();
     g.connect(masterGain);
@@ -590,7 +596,7 @@ const curve = (v) => v * v;
 function applyGains(instant) {
   if (!ctx) return;
   const set = (param, v) => instant ? param.setValueAtTime(v, ctx.currentTime) : param.setTargetAtTime(v, ctx.currentTime, .02);
-  set(masterGain.gain, curve(state.master) * CFG.headroom);   // the four stems add up; headroom keeps key changes and loop crossfades below 0 dBFS
+  set(masterGain.gain, curve(state.master) * CFG.boost);
   stemGains.forEach((g, i) => set(g.gain, state.mutes[i] ? 0 : curve(state.levels[i])));
 }
 

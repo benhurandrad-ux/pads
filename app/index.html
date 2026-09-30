@@ -168,6 +168,11 @@
   }
   .key[aria-pressed="true"] span { color: rgba(255, 255, 255, .8); }
   .key.empty { opacity: .35; }
+  .key { position: relative; }
+  .key.pending::after {   /* not saved on this device yet */
+    content: ''; position: absolute; top: 7px; right: 8px; width: 6px; height: 6px; border-radius: 50%;
+    background: #f5b83d; box-shadow: 0 0 0 2px rgba(245, 184, 61, .2);
+  }
   .key.idle { background: var(--panel); border-color: var(--accent); box-shadow: none; }
   .key.idle span { color: var(--muted); }
 
@@ -482,7 +487,7 @@ const CFG = {
   fadeOut: 1.6,     // seconds, fade-out of the previous key and on stop
   loopFade: 4,      // seconds, crossfade at the loop point (capped at 25% of the track)
 };
-const BUILD = '2026-09-20.24';   // keep equal to version.txt; a different value there forces clients to reload
+const BUILD = '2026-09-29.25';   // keep equal to version.txt; a different value there forces clients to reload
 const KEYS = [['C', 'Dó'], ['D', 'Ré'], ['E', 'Mi'], ['F', 'Fá'], ['G', 'Sol'], ['A', 'Lá'], ['B', 'Si']];
 const STORE = 'pads.v2';
 const AUDIO_RE = /^(?!\.).*\.(mp3|wav|m4a|aac|ogg)$/i;   // skips macOS "._" sidecar files
@@ -612,14 +617,14 @@ class Voice {
   constructor(urls, key) {
     this.gen = 0;
     this.key = key;
-    this.parts = urls.map((url, i) => {
-      if (!url) return null;
+    this.parts = urls.map((id, i) => {
+      if (!id) return null;
       const el = new Audio();
       el.crossOrigin = 'anonymous';
       el.preload = 'auto';
-      el.src = offline[url] || url;
+      el.src = stemSrc(id);
       // Keyed by file name: the original "DCAM 2.m4a" was recorded in C. The corrected "D CAM 2.m4a" plays untouched.
-      const file = decodeURIComponent((stable[url] || url).split('?')[0].split('/').pop());
+      const file = decodeURIComponent(id.split('?')[0].split('/').pop());
       const semis = CFG.transpose[file];
       if (semis) {   // pads have no tempo, so shifting pitch through the playback rate is transparent
         el.preservesPitch = el.webkitPreservesPitch = el.mozPreservesPitch = false;
@@ -746,6 +751,7 @@ function selectKey(key) {
   if (licenseExpired()) return showPaywall();
   if (!library[key]?.some(Boolean)) return toast(`${key}: ainda não há faixas nesse tom.`);
   if (state.on && state.key === key) return;
+  if (!keyPlayable(key)) return toast(`${key}: esse tom ainda não foi baixado neste aparelho. Conecte à internet para terminar o download.`);
   state.key = key;
   startSound();
   save();
@@ -755,6 +761,7 @@ function togglePower() {
   if (!state.on && licenseExpired()) return showPaywall();
   if (state.on) stopSound();
   else if (!state.key) toast('Escolha um tom para ligar.');
+  else if (!keyPlayable(state.key)) toast(`${state.key}: esse tom ainda não foi baixado neste aparelho. Conecte à internet para terminar o download.`);
   else if (!startSound()) toast(`${state.key}: ainda não há faixas nesse tom.`);
   render();
 }
@@ -765,18 +772,26 @@ const bucket = () => sb.storage.from(CFG.bucket);
 // Folders can be plain ("C") or keep their original names ("Continuous Pad - Vol 01 C") when sent
 // through the Supabase dashboard; files are slotted by the number in their name, same rule as the upload.
 // The bucket is private: only signed-in users with an active license can list or sign stems (storage policy).
-// Playback uses signed URLs; `stable` maps each one to a permanent id used as the offline cache key.
-const stable = {};
+// `library` holds a permanent id per stem (also the offline cache key); `signed` maps it to a signed URL for download.
+const signed = {};
 const MANIFEST_KEY = 'kingpad.manifest';
 const stableId = (path, v) => `https://stems.kingpad.invalid/${encodeURI(path)}?v=${v}`;
 let libraryFor = null;
 let openedSent = false;
 
+function applyManifest(manifest) {
+  const next = {};
+  for (const [key] of KEYS) next[key] = fit((manifest?.[key] || []).map((id) => id || null), null);
+  for (const [key] of KEYS) library[key] = next[key];
+}
+// Last known stems, straight from the device: the keys work at once, even on stage Wi-Fi that never answers.
+(() => { try { const m = JSON.parse(localStorage.getItem(MANIFEST_KEY)); if (m) { applyManifest(m); libraryReady = true; } } catch {} })();
+
 async function loadLibrary(force) {
   if (!user || (!force && libraryFor === user.id)) return;
   libraryFor = user.id;
-  const next = {}, stamp = {}, picked = {};
-  for (const [key] of KEYS) { next[key] = Array(CFG.stems).fill(null); stamp[key] = Array(CFG.stems).fill(-1); }
+  const stamp = {}, picked = {};
+  for (const [key] of KEYS) stamp[key] = Array(CFG.stems).fill(-1);
   try {
     const { data: root, error } = await bucket().list('', { limit: 200 });
     if (error) throw error;
@@ -793,84 +808,126 @@ async function loadLibrary(force) {
     }));
     const items = Object.values(picked);
     if (!items.length) throw new Error('empty');
-    const { data: signed, error: signError } = await bucket().createSignedUrls(items.map((x) => x.path), 60 * 60 * 24 * 7);
+    const { data: urls, error: signError } = await bucket().createSignedUrls(items.map((x) => x.path), 60 * 60 * 24 * 7);
     if (signError) throw signError;
     const manifest = {};
     items.forEach((x, n) => {
-      const url = signed?.[n]?.signedUrl;
+      const url = urls?.[n]?.signedUrl;
       if (!url) return;
-      next[x.key][x.i] = url;
-      stable[url] = stableId(x.path, x.v);
-      (manifest[x.key] ||= Array(CFG.stems).fill(null))[x.i] = stable[url];
+      const id = stableId(x.path, x.v);
+      signed[id] = url;
+      (manifest[x.key] ||= Array(CFG.stems).fill(null))[x.i] = id;
     });
     try { localStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch {}
+    if (!state.on) applyManifest(manifest);
+    else {   // never swap the stems under a key that is playing; the new list applies to the next key change
+      const playing = library[state.key];
+      applyManifest(manifest);
+      library[state.key] = playing;
+    }
   } catch {
-    // Offline (or no license): fall back to what is already saved on this device.
-    libraryFor = null;
-    try {
-      const manifest = JSON.parse(localStorage.getItem(MANIFEST_KEY)) || {};
-      for (const [key] of KEYS) (manifest[key] || []).forEach((id, n) => { if (id && n < CFG.stems) { next[key][n] = id; stable[id] = id; } });
-    } catch {}
+    libraryFor = null;   // offline (or no license): keep what the device already knows
   }
-  for (const [key] of KEYS) library[key] = next[key];
   libraryReady = true;
   render();
   prewarm();
   cacheStems();
 }
 
-// Buffers the start of every stem ahead of time (the browser shares the media cache per URL),
-// so a key change starts playing right away instead of waiting for the network.
+// Opens the connection to stems not saved yet, so the first play of a key starts faster.
 let warm = [];
 function prewarm() {
-  if (!user || navigator.connection?.saveData) return;
-  if (!navigator.onLine) return;
+  if (!user || navigator.connection?.saveData || !navigator.onLine) return;
   warm.forEach((el) => { el.removeAttribute('src'); el.load(); });
   // Only the connection and the header: buffering 28 files at once starved the stems that were playing.
-  warm = Object.values(library).flat().filter((url) => url && !offline[url]).map((url) => {
+  warm = Object.values(library).flat().filter((id) => id && !local.has(id) && signed[id]).map((id) => {
     const el = new Audio();
     el.crossOrigin = 'anonymous';
     el.preload = 'metadata';
-    el.src = url;
+    el.src = signed[id];
     return el;
   });
 }
 
 /* ---------- Offline ---------- */
-// Every stem is saved on the device after login (Cache Storage), so the pads keep working if the
-// internet drops. Cached stems play from the local copy.
-const offline = {};   // remote url -> local object url
-let caching = false;
-async function cacheStems() {
-  if (!user || caching || !('caches' in window) || navigator.connection?.saveData) return;
-  caching = true;
-  const info = $('#offlineInfo');
-  try {
-    const cache = await caches.open('pads-stems-v1');
-    const mine = (k) => (library[k] || []).filter(Boolean);
-    const urls = [...mine(state.key), ...KEYS.flatMap(([k]) => (k === state.key ? [] : mine(k)))];
-    const ids = new Set(urls.map((u) => stable[u] || u));
-    for (const req of await cache.keys()) if (!ids.has(req.url)) await cache.delete(req);   // replaced stems
-    let done = 0;
-    for (const url of urls) {
-      try {
-        const id = stable[url] || url;
-        let res = await cache.match(id);
-        if (!res) {
-          const r = await fetch(url, { mode: 'cors' });
-          if (!r.ok) throw new Error(r.status);
-          await cache.put(id, r.clone());
-          res = r;
-        }
-        if (!offline[url]) offline[url] = URL.createObjectURL(await res.blob());
-        done++;
-      } catch {}
-      info.textContent = done === urls.length ? 'Offline ok' : `Baixando ${done}/${urls.length}`;
-      if (done === urls.length && urls.length) { try { if (!localStorage.getItem('kingpad.offline.sent')) { localStorage.setItem('kingpad.offline.sent', '1'); track('offline_ready'); } } catch {} }
-    }
-    try { navigator.storage?.persist?.(); } catch {}
-  } finally { caching = false; }
+// Every stem is saved on the device after login (Cache Storage) and played from there through the
+// service worker (sw.js), so a key change never needs the internet. Nothing is held in memory.
+const STEM_CACHE = 'pads-stems-v1';
+const local = new Set();   // ids fully saved on this device
+const swReady = () => !!navigator.serviceWorker?.controller;
+const blobs = {};          // fallback only for browsers without a service worker
+function stemSrc(id) {
+  if (local.has(id) && swReady()) return `stem/?id=${encodeURIComponent(id)}`;
+  return blobs[id] || signed[id] || '';
 }
+const keyPlayable = (key) => (library[key] || []).filter(Boolean).every((id) => local.has(id) || blobs[id] || (navigator.onLine && signed[id]));
+const keySaved = (key) => (library[key] || []).filter(Boolean).every((id) => local.has(id));
+const allIds = () => KEYS.flatMap(([k]) => (library[k] || []).filter(Boolean));
+
+async function scanLocal() {
+  if (!('caches' in window)) return;
+  try {
+    const cache = await caches.open(STEM_CACHE);
+    for (const req of await cache.keys()) local.add(req.url);
+  } catch {}
+  showOffline();
+  render();
+}
+function showOffline() {
+  const ids = allIds(), done = ids.filter((id) => local.has(id)).length;
+  const info = $('#offlineInfo');
+  if (!ids.length) info.textContent = '';
+  else if (done === ids.length) info.textContent = 'Offline ok';
+  else if (caching && navigator.onLine) info.textContent = `Baixando ${done}/${ids.length}`;
+  else info.textContent = `Faltam ${ids.length - done} faixas`;
+}
+
+const STEM_TYPES = { mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav', ogg: 'audio/ogg' };
+let caching = false, retryTimer = null;
+async function cacheStems() {
+  if (!user || caching || !('caches' in window)) return;
+  caching = true;
+  clearTimeout(retryTimer);
+  try {
+    const cache = await caches.open(STEM_CACHE);
+    // Selected key first, then the rest.
+    const ids = [...new Set([...(library[state.key] || []).filter(Boolean), ...allIds()])];
+    if (Object.keys(signed).length) {   // fresh list from the server: drop stems that were replaced
+      const keep = new Set(ids);
+      for (const req of await cache.keys()) if (!keep.has(req.url) && !(state.on && library[state.key]?.includes(req.url))) { await cache.delete(req); local.delete(req.url); }
+    }
+    showOffline();
+    for (const id of ids) {
+      if (local.has(id)) continue;
+      if (await cache.match(id)) { local.add(id); showOffline(); continue; }
+      if (!signed[id] || !navigator.onLine) continue;
+      for (let attempt = 1; attempt <= 3 && !local.has(id); attempt++) {
+        try {
+          const r = await fetch(signed[id], { mode: 'cors' });
+          if (!r.ok) throw new Error(r.status);
+          const expected = +r.headers.get('content-length') || 0;
+          const blob = await r.blob();
+          if (!blob.size || (expected && blob.size !== expected)) throw new Error('incomplete');
+          const ext = decodeURIComponent(id.split('?')[0]).split('.').pop().toLowerCase();
+          await cache.put(id, new Response(blob, { headers: { 'Content-Type': STEM_TYPES[ext] || r.headers.get('content-type') || 'audio/mpeg', 'Content-Length': String(blob.size) } }));
+          local.add(id);
+          if (!('serviceWorker' in navigator)) blobs[id] = URL.createObjectURL(blob);
+        } catch { await new Promise((ok) => setTimeout(ok, 1500 * attempt)); }
+      }
+      showOffline();
+      render();
+    }
+    try { await navigator.storage?.persist?.(); } catch {}
+  } finally { caching = false; }
+  showOffline();
+  render();
+  const missing = allIds().filter((id) => !local.has(id)).length;
+  if (!missing && allIds().length) { try { if (!localStorage.getItem('kingpad.offline.sent')) { localStorage.setItem('kingpad.offline.sent', '1'); track('offline_ready'); } } catch {} }
+  else if (missing) retryTimer = setTimeout(() => { if (navigator.onLine) (Object.keys(signed).length ? cacheStems() : loadLibrary(true)); }, 20000);   // keeps trying until 100%
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+scanLocal();
+window.addEventListener('offline', () => { showOffline(); render(); });
 window.addEventListener('online', () => loadLibrary(true));
 
 /* ---------- Folder and file naming ---------- */
@@ -983,6 +1040,7 @@ function render() {
     keyBtns[key].setAttribute('aria-pressed', String(state.key === key));
     keyBtns[key].classList.toggle('idle', state.key === key && !state.on);
     keyBtns[key].classList.toggle('empty', !library[key]?.some(Boolean));
+    keyBtns[key].classList.toggle('pending', !!library[key]?.some(Boolean) && !keySaved(key));
   }
   faderEls.forEach((el, i) => {
     el.classList.toggle('muted', state.mutes[i]);
@@ -1240,10 +1298,12 @@ $('#resetLevels').addEventListener('click', () => {
 $('#redownload').addEventListener('click', async () => {
   if (!navigator.onLine) return toast('Conecte à internet para baixar as faixas.');
   if (caching) return toast('O download já está em andamento.');
+  if (state.on) return toast('Desligue o som antes de baixar as faixas de novo.');
   $('#redownloadState').textContent = 'Baixando…';
-  try { await caches.delete('pads-stems-v1'); } catch {}
-  for (const k of Object.keys(offline)) { if (!state.on) URL.revokeObjectURL(offline[k]); delete offline[k]; }
-  await cacheStems();
+  try { await caches.delete(STEM_CACHE); } catch {}
+  local.clear();
+  await loadLibrary(true);
+  while (caching) await new Promise((ok) => setTimeout(ok, 500));
   $('#redownloadState').textContent = $('#offlineInfo').textContent === 'Offline ok' ? 'Faixas salvas neste aparelho' : 'Não terminou, tente de novo';
 });
 
@@ -1285,7 +1345,11 @@ function applySession(session) {
   if (user) { $('#authPass').value = ''; say(''); if (libraryReady) { if (!warm.length) prewarm(); cacheStems(); } }
   render();
 }
-sb.auth.onAuthStateChange((_event, session) => applySession(session));
+// Offline, an expired token can't refresh and supabase reports no session: keep the account saved on
+// the device until the server really signs it out (it refreshes on its own when the internet returns).
+const AUTH_KEY = `sb-${new URL(CFG.supabaseUrl).hostname.split('.')[0]}-auth-token`;
+function storedSession() { try { const s = JSON.parse(localStorage.getItem(AUTH_KEY)); return s?.user ? s : null; } catch { return null; } }
+sb.auth.onAuthStateChange((event, session) => applySession(session || (event === 'SIGNED_OUT' ? null : storedSession())));
 
 // Forced update: when version.txt differs from this build, reload with a cache-busting URL (never while playing).
 async function checkVersion() {
@@ -1353,7 +1417,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
 render();
 if (location.hash === '#cadastro') setAuthMode('signup');   // sales page CTA lands on the sign-up tab
-sb.auth.getSession().then(({ data }) => applySession(data.session));
+sb.auth.getSession().then(({ data }) => applySession(data.session || storedSession()), () => applySession(storedSession()));
 loadLibrary();
 </script>
 </body>
